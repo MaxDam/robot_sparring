@@ -47,16 +47,16 @@ bool southpaw = true;
 #define RIGHT_STRIGHT_END_DEGREE   90
 
 //right hook calibration
-#define RIGHT_HOOK_START_DEGREE    20
-#define RIGHT_HOOK_END_DEGREE      120
+#define RIGHT_HOOK_START_DEGREE    35
+#define RIGHT_HOOK_END_DEGREE      140
 
 //left straight calibration
 #define LEFT_STRIGHT_START_DEGREE  20
 #define LEFT_STRIGHT_END_DEGREE    80
 
 //left hook calibration
-#define LEFT_HOOK_START_DEGREE     20
-#define LEFT_HOOK_END_DEGREE       110
+#define LEFT_HOOK_START_DEGREE     35
+#define LEFT_HOOK_END_DEGREE       120
 
 int angleToPulse(int ang){
    int pulse = map(ang, 0, 180, SERVO_MIN_PULSE_WIDTH, SERVO_MAX_PULSE_WIDTH);// map angle of 0 to 180 to Servo min and Servo max 
