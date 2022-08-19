@@ -9,8 +9,8 @@
 #include <Adafruit_SSD1306.h>
 
 //wifi
-char* ssid = "Vodafone-C01960075";
-char* password = "tgYsZkgHA4xhJLGy";
+char* ssid = "xxx";
+char* password = "xxx";
 WiFiClient espClient;
 
 //servo driver calibration
