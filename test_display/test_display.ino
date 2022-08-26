@@ -37,14 +37,10 @@ void displaymenu(void) {
   if (back == LOW) {
     entered = -1;
   };
-  const char *options[7] = {
-    " Menu 1",
-    " Menu 2",
-    " Menu 3",
-    " Menu 4 ",
-    " Menu 5 ",
-    " Menu 6 ",
-    " Menu 7 "
+  const char *options[3] = {
+    " EASY",
+    " INTERMEDIATE",
+    " PRO"
   };
 
   if (entered == -1) {
@@ -63,77 +59,35 @@ void displaymenu(void) {
         display.println(options[i]);
       }
     }
-  } else if (entered == 0) {
+  } 
+  else if (entered == 0) {
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
-    display.println(F("Dsn menu test"));
-    display.println("Menu option 1");
+    display.println(F("Level:"));
+	display.setTextSize(2);
+    display.println("Easy");
     display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);
-    display.println("Dsn Menu system");
-  } else if (entered == 1) {
+  } 
+  else if (entered == 1) {
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
-    display.println(F("Dsn menu test"));
-    display.println("Menu option 2");
+    display.println(F("Level:"));
+	display.setTextSize(2);
+    display.println("Intermediate");
     display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);
-    display.println("Dsn Menu system :)");
-  }
+  } 
   else if (entered == 2) {
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
-    display.println(F("Dsn menu test"));
-    display.println("Menu option 3");
-    display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);
-    display.println("Dsn Menu system:)");
-  } else if (entered == 3) {
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println(F("Dsn menu test"));
-    display.println("Menu option 4");
-    display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);
-    display.println("Dsn Menu system:)");
-  } else if (entered == 4) {
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println(F("Dsn menu test"));
-    display.println("Menu option 5");
-    display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);
-    display.println("Dsn Menu system:)");
-  } else if (entered == 5) {
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println(F("Dsn menu test"));
-    display.println("Menu option 6");
-    display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);
-    display.println("Dsn Menu system:)");
-  } else if (entered == 6) {
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println(F("Dsn menu test"));
-    display.println("Menu option 7");
-    display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);
-    display.println("Dsn Menu system:)");
+    display.println(F("Level:"));
+	display.setTextSize(2);
+    display.println("Level Pro");
   }
 
   display.display();
