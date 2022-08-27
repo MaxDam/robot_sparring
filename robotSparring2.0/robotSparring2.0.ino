@@ -1,6 +1,8 @@
-//ESP-WROOM-32 38 PIN Develeopment
 //http://arduino.esp8266.com/stable/package_esp8266com_index.json
 //https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+//ESP-WROOM-32 38 PIN Develeopment
+//TOOLS->Board->ESP32 Arduino->DOIT ESP32 DEVKIT V1
 
 #include "WiFi.h"
 #include <Wire.h>
