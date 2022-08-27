@@ -8,12 +8,6 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-//button states
-int buttonBack = HIGH;
-int buttonOk   = HIGH;
-int buttonUp   = HIGH;
-int buttonDown = HIGH;
-
 //wifi
 char* ssid = "xxx";
 char* password = "xxx";
