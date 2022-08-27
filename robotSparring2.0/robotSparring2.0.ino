@@ -138,24 +138,35 @@ void displayText(String text) {
 int selected = 0;
 int entered = -1;
 
+//check menu button status
+void checkButtons() {
+  int up     = digitalRead(16);
+  int down    = digitalRead(17);
+  int enter  = digitalRead(18);
+  int back   = digitalRead(19);
+  if (back == LOW || enter == LOW || up == LOW || down == LOW) {
+    displayLevelMenu();
+  }
+}
+
 //menu
 void displayLevelMenu() {
-  int up     = digitalRead(16);
-  int down 	 = digitalRead(17);
-	int enter  = digitalRead(18);
+  int down   = digitalRead(16);
+  int up     = digitalRead(17);
+  int enter  = digitalRead(18);
 	int back 	 = digitalRead(19);
   
 	if (up == LOW && down == LOW) {
 	};
 	if (up == LOW) {
-		selected = selected + 1;
-    if(selected > 2) selected = 2;
-		delay(200);
-	};
-	if (down == LOW) {
-		selected = selected - 1;
+    selected = selected - 1;
     if(selected < 0) selected = 0;
-		delay(200);
+    delay(200);
+	};
+	if (down == LOW) {	
+    selected = selected + 1;
+    if(selected > 2) selected = 2;
+    delay(200);
 	};
 	if (enter == LOW) {
 		entered = selected;
@@ -249,13 +260,11 @@ void initWiFi() {
 //basic movements
 
 void startPosition() {
-	//displayText("Let's begin!");
-	//displayText("Cutuliata 3.0 is ready for training");
-	//displayText("Are you ready for cutuliata?");
 	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_START_DEGREE));
 	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
 	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_START_DEGREE));
 	pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_START_DEGREE));
+  checkButtons();
 }
 
 void straightRight() {
@@ -263,6 +272,7 @@ void straightRight() {
 	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_END_DEGREE));
 	delay(SHOT_DURATION);
 	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_START_DEGREE));
+  checkButtons();
 }
 
 void straightLeft() {
@@ -270,6 +280,7 @@ void straightLeft() {
 	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_END_DEGREE));
 	delay(SHOT_DURATION);
 	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
+  checkButtons();
 }
 
 void hookRight() {
@@ -277,6 +288,7 @@ void hookRight() {
 	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_END_DEGREE));
 	delay(SHOT_DURATION);
 	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_START_DEGREE));
+  checkButtons();
 }
 
 void hookLeft() {
@@ -284,6 +296,7 @@ void hookLeft() {
 	pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_END_DEGREE));
 	delay(SHOT_DURATION);
 	pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_START_DEGREE));
+  checkButtons();
 }
 
 //shot combinations
@@ -672,17 +685,17 @@ int getRandomWaitTime() {
     
     switch(state) {
       case EASY: {
-        int timeProbs[5] = {12, 22, 22, 22, 22};
-        waitingTimeMult = getRandomActionFromProbability(timeProbs, 5);
+        int timeProbs[4] = {19, 27, 27, 27};
+        waitingTimeMult = getRandomActionFromProbability(timeProbs, 4);
         return SHOT_DURATION + waitingTimeMult * 1000;
       }
       case MEDIUM: {
-        int timeProbs[4] = {10, 30, 30, 30};
-        waitingTimeMult = getRandomActionFromProbability(timeProbs, 5);
+        int timeProbs[3] = {20, 40, 40};
+        waitingTimeMult = getRandomActionFromProbability(timeProbs, 3);
         return SHOT_DURATION + waitingTimeMult * 1000;
       }
       case PRO: {
-        int timeProbs[3] = {10, 40, 40};
+        int timeProbs[3] = {30, 35, 35};
         waitingTimeMult = getRandomActionFromProbability(timeProbs, 3);
         return SHOT_DURATION + waitingTimeMult * 1000;
       }
@@ -691,11 +704,23 @@ int getRandomWaitTime() {
   }
 }
 
+//wait the shot pause time
+void waitShotPauseTime() {
+  checkButtons();
+  int waitTime = getRandomWaitTime();
+  for(int i = 0; i < 10; i++) {
+    delay(waitTime/10);
+    checkButtons();
+  }
+}
+
 //get action (random probability) state based
 int getActionFromState() {
 	int action = 0;
 	switch(state) {
 		case START: {
+      displayText("Start...");
+    
 			startPosition();
 			delay(SHOT_PAUSE);
 			straightRight();
@@ -705,40 +730,28 @@ int getActionFromState() {
 			hookRight();
 			delay(SHOT_PAUSE);
 			hookLeft();
-			delay(2000);
-
-			startPosition();
+			
 			state = STOP;
-			break;
+      action = 0;
+      break;
 		}
 		case STOP: {
+      action = 0;
       break;
     }
     case EASY: {
 			int shotNumberProbs[2] = {70, 30};
-			action = getRandomActionFromProbability(shotNumberProbs, 2);
-			/*if(shotCount > 5) {
-			state = MEDIUM;
-			displayText("Level: MEDIUM");
-			delay(1000);
-			shotCount = 0;
-			}*/
+			action = getRandomActionFromProbability(shotNumberProbs, 2) + 1;
 			break;
 		}
 		case MEDIUM: {
 			int shotNumberProbs[3] = {30, 30, 40};
-			action = getRandomActionFromProbability(shotNumberProbs, 3);
-			/*if(shotCount > 10) {
-			state = PRO;
-			displayText("Level: PRO");
-			delay(1000);
-			shotCount = 0;
-			}*/
+			action = getRandomActionFromProbability(shotNumberProbs, 3) + 1;
 			break;
 		}
 		case PRO: {
 			int shotNumberProbs[4] = {10, 20, 35, 35};
-			action = getRandomActionFromProbability(shotNumberProbs, 4);
+			action = getRandomActionFromProbability(shotNumberProbs, 4) + 1;
 			break;
 		}
 	}
@@ -757,14 +770,12 @@ void checkChangeSide() {
 //execute the action (random probability based)
 void executeAction(int action)  {
 
-  switch(state) {
-    case START: 
-    case STOP:
-      return;
-  }
-  
-	switch(action) {
-		case 0: { //single shot
+  switch(action) {
+    case 0: { //no action
+      startPosition();
+      break;
+    }
+		case 1: { //single shot
 			int singleShotProbs[2] = {50, 50};
 			switch(getRandomActionFromProbability(singleShotProbs, 2)) {
 				case 0: shot_1(southpaw); break;
@@ -772,7 +783,7 @@ void executeAction(int action)  {
 			}
 			break;
 		}
-		case 1: { //double shot
+		case 2: { //double shot
 			int doubleShotProbs[7] = {15, 14, 14, 14, 15, 14, 14};
 			switch(getRandomActionFromProbability(doubleShotProbs, 7)) {
 				case 0: shot_1_2(southpaw);  break;
@@ -785,7 +796,7 @@ void executeAction(int action)  {
 			}
 			break;
 		}
-		case 2: { //triple shot
+		case 3: { //triple shot
 			int tripleShotProbs[10] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
 			switch(getRandomActionFromProbability(tripleShotProbs, 10)) {
 				case 0: shot_1_2_3(southpaw);  break;
@@ -801,7 +812,7 @@ void executeAction(int action)  {
 			}
 			break;
 		}
-		case 3: { //quadruple shot
+		case 4: { //quadruple shot
 			int quadrupleShotProbs[7] = {15, 14, 14, 14, 15, 14, 14};
 			switch(getRandomActionFromProbability(quadrupleShotProbs, 7)) {
 				case 0: shot_1_2_3_4(southpaw);  break;
@@ -835,6 +846,5 @@ void loop() {
 	checkChangeSide();
 	executeAction(action);
 
-  displayLevelMenu();
-	delay(getRandomWaitTime());
+  waitShotPauseTime();
 }

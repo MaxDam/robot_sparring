@@ -41,10 +41,11 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 //state
-#define START     0
-#define EASY      1
-#define INTERMEDIATE    2
-#define PRO 3
+#define STOP            0
+#define START           1
+#define EASY            2
+#define MEDIUM          3
+#define PRO             4
 
 //vars
 unsigned int state = START;
@@ -94,75 +95,163 @@ int pulseWidth(int angle){
 //init servo driver
 void initServoDriver() {
 	pwm.begin();
-  pwm.setOscillatorFrequency(27000000);
-  pwm.setPWMFreq(SERVO_FREQUENCY);
-  delay(10);
+	pwm.setOscillatorFrequency(27000000);
+	pwm.setPWMFreq(SERVO_FREQUENCY);
+	delay(10);
 }
 
 //init display
 void initDisplay() {
 	// initialize OLED display with I2C address 0x3C
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("failed to start SSD1306 OLED"));
-    while (1);
-  }
+	if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+		Serial.println(F("failed to start SSD1306 OLED"));
+		while (1);
+	}
 
-  delay(2000);        
-  display.clearDisplay(); 
+	delay(2000);        
+	display.clearDisplay(); 
 
-  display.setTextSize(2);         
+	display.setTextSize(2);         
   display.setTextColor(WHITE);    
-  display.setCursor(0, 15);       
-  display.println("Hello! Are you ready?");     
-  display.display();    
+	display.setCursor(0, 15);       
+	display.println("Hello!");     
+	display.display();  
+  delay(1000);  
 
-  //init buttons
-  //pinMode (19, INPUT_PULLDOWN);
-  pinMode (19, INPUT_PULLUP); //BACK
-  pinMode (18, INPUT_PULLUP); //OK
-  pinMode (17, INPUT_PULLUP); //UP
-  pinMode (16, INPUT_PULLUP); //DOWN
+	//init buttons
+	//pinMode (19, INPUT_PULLDOWN);
+	pinMode (19, INPUT_PULLUP); //BACK
+	pinMode (18, INPUT_PULLUP); //OK
+	pinMode (17, INPUT_PULLUP); //UP
+	pinMode (16, INPUT_PULLUP); //DOWN
 }
 
 //display string text on the center
 void displayText(String text) {
-  display.clearDisplay(); 
-  display.setCursor(0, 15);
-  display.println(text);     
-  display.display(); 
+	display.clearDisplay(); 
+	display.setCursor(0, 15);
+	display.println(text);     
+	display.display(); 
+}
+
+//display
+int selected = 0;
+int entered = -1;
+
+//menu
+void displayLevelMenu() {
+  int up     = digitalRead(16);
+  int down 	 = digitalRead(17);
+	int enter  = digitalRead(18);
+	int back 	 = digitalRead(19);
+  
+	if (up == LOW && down == LOW) {
+	};
+	if (up == LOW) {
+		selected = selected + 1;
+    if(selected > 2) selected = 2;
+		delay(200);
+	};
+	if (down == LOW) {
+		selected = selected - 1;
+    if(selected < 0) selected = 0;
+		delay(200);
+	};
+	if (enter == LOW) {
+		entered = selected;
+	};
+	if (back == LOW) {
+		entered = -1;
+		state = STOP;
+	};
+	const char *options[3] = {
+		"EASY      ",
+		"MEDIUM    ",
+		"PRO       "
+	};
+
+	if(entered == -1) {
+		display.clearDisplay();
+		display.setTextSize(2);
+		display.setTextColor(WHITE);
+		display.setCursor(0, 5);
+		for (int i = 0; i < 3; i++) {
+			if (i == selected) {
+				display.setTextColor(BLACK, WHITE);
+        display.println(options[i]);
+			} else if (i != selected) {
+				display.setTextColor(WHITE);
+				display.println(options[i]);
+			}
+		}
+	}
+	else if(entered == 0) {
+		display.clearDisplay();
+		display.setTextSize(1);
+		display.setTextColor(WHITE);
+		display.setCursor(0, 10);
+		display.println("Level:");
+		display.setTextSize(2);
+		display.println("EASY");
+		display.setTextColor(WHITE);
+		state = EASY;
+	} 
+	else if(entered == 1) {
+		display.clearDisplay();
+		display.setTextSize(1);
+		display.setTextColor(WHITE);
+		display.setCursor(0, 10);
+		display.println("Level:");
+		display.setTextSize(2);
+		display.println("MEDIUM");
+		display.setTextColor(WHITE);
+		state = MEDIUM;
+	} 
+	else if(entered == 2) {
+		display.clearDisplay();
+		display.setTextSize(1);
+		display.setTextColor(WHITE);
+		display.setCursor(0, 10);
+		display.println("Level:");
+		display.setTextSize(2);
+		display.println("PRO");
+		state = PRO;
+	}
+
+	display.display();
 }
 
 //init WiFi
 void initWiFi() {
- // Connect to the network
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to ");
-  Serial.print(ssid); Serial.println(" ...");
+	// Connect to the network
+	WiFi.begin(ssid, password);
+	Serial.print("Connecting to ");
+	Serial.print(ssid); Serial.println(" ...");
 
-  // Wait for the Wi-Fi to connect
-  int i = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(++i); Serial.print(' ');
-  }
+	// Wait for the Wi-Fi to connect
+	int i = 0;
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(1000);
+		Serial.print(++i); Serial.print(' ');
+	}
 
-  // Send the IP address of the ESP8266 to the computer
-  Serial.println('\n');
-  Serial.println("Connection established!");  
-  Serial.print("IP address:\t");
-  Serial.println(WiFi.localIP());
-  Serial.println("");
-  //display.write(WiFi.localIP());
-  
-  delay(1000);
+	// Send the IP address of the ESP8266 to the computer
+	Serial.println('\n');
+	Serial.println("Connection established!");  
+	Serial.print("IP address:\t");
+	Serial.println(WiFi.localIP());
+	Serial.println("");
+	//display.write(WiFi.localIP());
+
+	delay(1000);
 }
 
 //basic movements
 
 void startPosition() {
-  //displayText("Let's begin!");
-  //displayText("Cutuliata 3.0 is ready for training");
-  displayText("Are you ready for cutuliata?");
+	//displayText("Let's begin!");
+	//displayText("Cutuliata 3.0 is ready for training");
+	//displayText("Are you ready for cutuliata?");
 	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_START_DEGREE));
 	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
 	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_START_DEGREE));
@@ -170,402 +259,402 @@ void startPosition() {
 }
 
 void straightRight() {
-  //displayText("straight right");
+	//displayText("straight right");
 	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_END_DEGREE));
 	delay(SHOT_DURATION);
 	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_START_DEGREE));
 }
 
 void straightLeft() {
-  //displayText("straight left");
-  pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_END_DEGREE));
-  delay(SHOT_DURATION);
-  pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
+	//displayText("straight left");
+	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_END_DEGREE));
+	delay(SHOT_DURATION);
+	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
 }
 
 void hookRight() {
-  //displayText("hook right");
+	//displayText("hook right");
 	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_END_DEGREE));
-  delay(SHOT_DURATION);
-  pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_START_DEGREE));
+	delay(SHOT_DURATION);
+	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_START_DEGREE));
 }
 
 void hookLeft() {
-  //displayText("hook left");
+	//displayText("hook left");
 	pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_END_DEGREE));
-  delay(SHOT_DURATION);
-  pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_START_DEGREE));
+	delay(SHOT_DURATION);
+	pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_START_DEGREE));
 }
 
 //shot combinations
 
 void shot_1(bool southpaw) {
-  displayText("one");
-  if(!southpaw) {
-    straightLeft();
-  } else {
-    straightRight();
-  }
+	//displayText("one");
+	if(!southpaw) {
+		straightLeft();
+	} else {
+		straightRight();
+	}
 }
 
 void shot_3(bool southpaw) {
-  displayText("three");
-  if(!southpaw) {
-    hookLeft();
-  } else {
-    hookRight();
-  }
+	//displayText("three");
+	if(!southpaw) {
+		hookLeft();
+	} else {
+		hookRight();
+	}
 }
 
 void shot_1_2(bool southpaw) {
-  displayText("one - two");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-  } else {
-    straightRight();
-    straightLeft();
-  }
+	//displayText("one - two");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+	}
 }
 
 void shot_2_3(bool southpaw) {
-  displayText("two - three");
-  if(!southpaw) {
-    straightRight();
-    hookLeft();
-  } else {
-    straightLeft();
-    hookRight();
-  }
+	//displayText("two - three");
+	if(!southpaw) {
+		straightRight();
+		hookLeft();
+	} else {
+		straightLeft();
+		hookRight();
+	}
 }
 
 void shot_1_1(bool southpaw) {
-  displayText("jab - jab");
-  if(!southpaw) {
-    straightLeft();
-    delay(SHOT_DURATION);
-    straightLeft();
-  } else {
-    straightRight();
-    delay(SHOT_DURATION);
-    straightRight();
-  }
+	//displayText("jab - jab");
+	if(!southpaw) {
+		straightLeft();
+		delay(SHOT_DURATION);
+		straightLeft();
+	} else {
+		straightRight();
+		delay(SHOT_DURATION);
+		straightRight();
+	}
 }
 
 void shot_3_2(bool southpaw) {
-  displayText("three - two");
-  if(!southpaw) {
-    hookLeft();
-    straightRight();
-  } else {
-    hookRight();
-    straightLeft();
-  }
+	//displayText("three - two");
+	if(!southpaw) {
+		hookLeft();
+		straightRight();
+	} else {
+		hookRight();
+		straightLeft();
+	}
 }
 
 void shot_1_3(bool southpaw) {
-  displayText("one - three");
-  if(!southpaw) {
-    straightLeft();
-    hookLeft();
-  } else {
-    straightRight();
-    hookRight();
-  }
+	//displayText("one - three");
+	if(!southpaw) {
+		straightLeft();
+		hookLeft();
+	} else {
+		straightRight();
+		hookRight();
+	}
 }
 
 void shot_3_3(bool southpaw) {
-  displayText("three - three");
-  if(!southpaw) {
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookLeft();
-  } else {
-    hookRight();
-    delay(SHOT_DURATION);
-    hookRight();
-  }
+	//displayText("three - three");
+	if(!southpaw) {
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookLeft();
+	} else {
+		hookRight();
+		delay(SHOT_DURATION);
+		hookRight();
+	}
 }
 
 void shot_3_4(bool southpaw) {
-  displayText("three - three");
-  if(!southpaw) {
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-  } else {
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-  }
+	//displayText("three - three");
+	if(!southpaw) {
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+	} else {
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+	}
 }
 
 void shot_1_2_3(bool southpaw) {
-  displayText("one - two - three");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-    hookLeft();
-  } else {
-    straightRight();
-    straightLeft();
-    hookRight();
-  }
+	//displayText("one - two - three");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+		hookLeft();
+	} else {
+		straightRight();
+		straightLeft();
+		hookRight();
+	}
 }
 
 void shot_2_3_2(bool southpaw) {
-  displayText("two - three - two");
-  if(!southpaw) {
-    straightRight();
-    hookLeft();
-    straightRight();
-  } else {
-    straightLeft();
-    hookRight();
-    straightLeft();
-  }
+	//displayText("two - three - two");
+	if(!southpaw) {
+		straightRight();
+		hookLeft();
+		straightRight();
+	} else {
+		straightLeft();
+		hookRight();
+		straightLeft();
+	}
 }
 
 void shot_1_3_1(bool southpaw) {
-  displayText("one - three - one");
-  if(!southpaw) {
-    straightLeft();
-    hookLeft();
-    straightLeft();
-  } else {
-    straightRight();
-    hookRight();
-    straightRight();
-  }
+	//displayText("one - three - one");
+	if(!southpaw) {
+		straightLeft();
+		hookLeft();
+		straightLeft();
+	} else {
+		straightRight();
+		hookRight();
+		straightRight();
+	}
 }
 
 void shot_1_2_2(bool southpaw) {
-  displayText("one - two - two");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-    delay(SHOT_DURATION);
-    straightRight();
-  } else {
-    straightRight();
-    straightLeft();
-    delay(SHOT_DURATION);
-    straightLeft();
-  }
+	//displayText("one - two - two");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+		delay(SHOT_DURATION);
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+		delay(SHOT_DURATION);
+		straightLeft();
+	}
 }
 
 void shot_1_1_2(bool southpaw) {
-  displayText("one - one - two");
-  if(!southpaw) {
-    straightLeft();
-    delay(SHOT_DURATION);
-    straightLeft();
-    straightRight();
-  } else {
-    straightRight();
-    delay(SHOT_DURATION);
-    straightRight();
-    straightLeft();
-  }
+	//displayText("one - one - two");
+	if(!southpaw) {
+		straightLeft();
+		delay(SHOT_DURATION);
+		straightLeft();
+		straightRight();
+	} else {
+		straightRight();
+		delay(SHOT_DURATION);
+		straightRight();
+		straightLeft();
+	}
 }
 
 void shot_1_2_1(bool southpaw) {
-  displayText("one - two - one");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-    straightLeft();
-  } else {
-    straightRight();
-    straightLeft();
-    straightRight();
-  }
+	//displayText("one - two - one");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+		straightLeft();
+	} else {
+		straightRight();
+		straightLeft();
+		straightRight();
+	}
 }
 
 void shot_1_4_3(bool southpaw) {
-  displayText("one - four - three");
-  if(!southpaw) {
-    straightLeft();
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-  } else {
-    straightRight();
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-  }
+	//displayText("one - four - three");
+	if(!southpaw) {
+		straightLeft();
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+	} else {
+		straightRight();
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+	}
 }
 
 void shot_3_4_2(bool southpaw) {
-  displayText("three - four - two");
-  if(!southpaw) {
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-    straightRight();
-  } else {
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-    straightLeft();
-  }
+	//displayText("three - four - two");
+	if(!southpaw) {
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+		straightRight();
+	} else {
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+		straightLeft();
+	}
 }
 
 void shot_3_4_3(bool southpaw) {
-  displayText("three - four - three");
-  if(!southpaw) {
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-  } else {
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-  }
+	//displayText("three - four - three");
+	if(!southpaw) {
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+	} else {
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+	}
 }
 
 void shot_3_1_3(bool southpaw) {
-  displayText("three - one - three");
-  if(!southpaw) {
-    hookLeft();
-    straightLeft();
-    hookLeft();
-  } else {
-    hookRight();
-    straightRight();
-    hookRight();
-  }
+	//displayText("three - one - three");
+	if(!southpaw) {
+		hookLeft();
+		straightLeft();
+		hookLeft();
+	} else {
+		hookRight();
+		straightRight();
+		hookRight();
+	}
 }
 
 void shot_1_2_3_4(bool southpaw) {
-  displayText("one - two - three - four");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-  } else {
-    straightRight();
-    straightLeft();
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-  }
+	//displayText("one - two - three - four");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+	} else {
+		straightRight();
+		straightLeft();
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+	}
 }
 
 void shot_1_2_1_2(bool southpaw) {
-  displayText("one - two - one - two");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-    straightLeft();
-    straightRight();
-  } else {
-    straightRight();
-    straightLeft();
-    straightRight();
-    straightLeft();
-  }
+	//displayText("one - two - one - two");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+		straightLeft();
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+		straightRight();
+		straightLeft();
+	}
 }
 
 void shot_1_2_3_2(bool southpaw) {
-  displayText("one - two - three - two");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-    hookLeft();
-    straightRight();
-  } else {
-    straightRight();
-    straightLeft();
-    hookRight();
-    straightLeft();
-  }
+	//displayText("one - two - three - two");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+		hookLeft();
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+		hookRight();
+		straightLeft();
+	}
 }
 
 void shot_3_4_2_1(bool southpaw) {
-  displayText("three - four - two - one");
-  if(!southpaw) {
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-    straightRight();
-    straightLeft();
-  } else {
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-    straightLeft();
-    straightRight();
-  }
+	//displayText("three - four - two - one");
+	if(!southpaw) {
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+		straightRight();
+		straightLeft();
+	} else {
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+		straightLeft();
+		straightRight();
+	}
 }
 
 void shot_3_4_3_2(bool southpaw) {
-  displayText("three - four - three - four");
-  if(!southpaw) {
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-    straightRight();
-  } else {
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-    straightLeft();
-  }
+	//displayText("three - four - three - four");
+	if(!southpaw) {
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+		straightRight();
+	} else {
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+		straightLeft();
+	}
 }
 
 void shot_3_4_3_3(bool southpaw) {
-  displayText("three - four - three - three");
-  if(!southpaw) {
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookLeft();
-  } else {
-    hookRight();
-    delay(SHOT_DURATION);
-    hookLeft();
-    delay(SHOT_DURATION);
-    hookRight();
-    delay(SHOT_DURATION);
-    hookRight();
-  }
+	//displayText("three - four - three - three");
+	if(!southpaw) {
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookLeft();
+	} else {
+		hookRight();
+		delay(SHOT_DURATION);
+		hookLeft();
+		delay(SHOT_DURATION);
+		hookRight();
+		delay(SHOT_DURATION);
+		hookRight();
+	}
 }
 
 void shot_1_2_1_1(bool southpaw) {
-  displayText("one - two - one - one");
-  if(!southpaw) {
-    straightLeft();
-    straightRight();
-    straightLeft();
-    delay(SHOT_DURATION);
-    straightLeft();
-  } else {
-    straightRight();
-    straightLeft();
-    straightRight();
-    delay(SHOT_DURATION);
-    straightRight();
-  }
+	//displayText("one - two - one - one");
+	if(!southpaw) {
+		straightLeft();
+		straightRight();
+		straightLeft();
+		delay(SHOT_DURATION);
+		straightLeft();
+	} else {
+		straightRight();
+		straightLeft();
+		straightRight();
+		delay(SHOT_DURATION);
+		straightRight();
+	}
 }
 
 //decides the action based on probability
 int getRandomActionFromProbability(int probs[], int probSize) {
-    int randomNumber = random(100+1);
+	int randomNumber = random(100+1);
     int threshold = 0;
     for(int i = 0 ; i < probSize ; i++) {
       threshold += probs[i];
@@ -578,187 +667,174 @@ int getRandomActionFromProbability(int probs[], int probSize) {
 
 //get wait time (level based)
 int getRandomWaitTime() {
-    //return SHOT_PAUSE;
-    
-    unsigned int waitingTimeMult = 0;
+     
+	unsigned int waitingTimeMult = 0;
     
     switch(state) {
       case EASY: {
         int timeProbs[5] = {12, 22, 22, 22, 22};
         waitingTimeMult = getRandomActionFromProbability(timeProbs, 5);
-        break;
+        return SHOT_DURATION + waitingTimeMult * 1000;
       }
-      case INTERMEDIATE: {
+      case MEDIUM: {
         int timeProbs[4] = {10, 30, 30, 30};
         waitingTimeMult = getRandomActionFromProbability(timeProbs, 5);
-        break;
+        return SHOT_DURATION + waitingTimeMult * 1000;
       }
       case PRO: {
         int timeProbs[3] = {10, 40, 40};
         waitingTimeMult = getRandomActionFromProbability(timeProbs, 3);
-        break;
+        return SHOT_DURATION + waitingTimeMult * 1000;
       }
+      default:
+        return 100;
   }
-
-  return SHOT_DURATION + waitingTimeMult * 1000;
 }
 
 //get action (random probability) state based
 int getActionFromState() {
-  int action = 0;
-  switch(state) {
-    case START: {
-      startPosition();
-      delay(SHOT_PAUSE);
-      straightRight();
-      delay(SHOT_PAUSE);
-      straightLeft();
-      delay(SHOT_PAUSE);
-      hookRight();
-      delay(SHOT_PAUSE);
-      hookLeft();
-      delay(2000);
-      
-      startPosition();
-      state = EASY;
-      delay(SHOT_PAUSE);
-      displayText("Level: EASY");
-      delay(1000);
+	int action = 0;
+	switch(state) {
+		case START: {
+			startPosition();
+			delay(SHOT_PAUSE);
+			straightRight();
+			delay(SHOT_PAUSE);
+			straightLeft();
+			delay(SHOT_PAUSE);
+			hookRight();
+			delay(SHOT_PAUSE);
+			hookLeft();
+			delay(2000);
+
+			startPosition();
+			state = STOP;
+			break;
+		}
+		case STOP: {
       break;
     }
     case EASY: {
-      int shotNumberProbs[2] = {70, 30};
-      action = getRandomActionFromProbability(shotNumberProbs, 2);
-      if(shotCount > 5) {
-        state = INTERMEDIATE;
-        displayText("Level: INTERMEDIATE");
-        delay(1000);
-        shotCount = 0;
-      }
-      break;
-    }
-    case INTERMEDIATE: {
-      int shotNumberProbs[3] = {30, 30, 40};
-      action = getRandomActionFromProbability(shotNumberProbs, 3);
-      if(shotCount > 10) {
-        state = PRO;
-        displayText("Level: PRO");
-        delay(1000);
-        shotCount = 0;
-      }
-      break;
-    }
-    case PRO: {
-      int shotNumberProbs[4] = {10, 20, 35, 35};
-      action = getRandomActionFromProbability(shotNumberProbs, 4);
-      break;
-    }
-  }
+			int shotNumberProbs[2] = {70, 30};
+			action = getRandomActionFromProbability(shotNumberProbs, 2);
+			/*if(shotCount > 5) {
+			state = MEDIUM;
+			displayText("Level: MEDIUM");
+			delay(1000);
+			shotCount = 0;
+			}*/
+			break;
+		}
+		case MEDIUM: {
+			int shotNumberProbs[3] = {30, 30, 40};
+			action = getRandomActionFromProbability(shotNumberProbs, 3);
+			/*if(shotCount > 10) {
+			state = PRO;
+			displayText("Level: PRO");
+			delay(1000);
+			shotCount = 0;
+			}*/
+			break;
+		}
+		case PRO: {
+			int shotNumberProbs[4] = {10, 20, 35, 35};
+			action = getRandomActionFromProbability(shotNumberProbs, 4);
+			break;
+		}
+	}
 
-  return action;
+	return action;
 }
 
 //change shot side based on probability
 void checkChangeSide() {
-  int changeSideProbs[2] = {80, 20};
-  if(getRandomActionFromProbability(changeSideProbs, 2) == 0) {
-    southpaw = !southpaw;
-  }
+	int changeSideProbs[2] = {80, 20};
+	if(getRandomActionFromProbability(changeSideProbs, 2) == 0) {
+		southpaw = !southpaw;
+	}
 }
 
 //execute the action (random probability based)
 void executeAction(int action)  {
-  switch(action) {
-    case 0: { //single shot
-      int singleShotProbs[2] = {50, 50};
-       switch(getRandomActionFromProbability(singleShotProbs, 2)) {
-          case 0: shot_1(southpaw); break;
-          case 1: shot_3(southpaw); break;
-       }
-       break;
-    }
-    case 1: { //double shot
-       int doubleShotProbs[7] = {15, 14, 14, 14, 15, 14, 14};
-       switch(getRandomActionFromProbability(doubleShotProbs, 7)) {
-          case 0: shot_1_2(southpaw);  break;
-          case 1: shot_3_3(southpaw);  break;
-          case 2: shot_1_1(southpaw);  break;
-          case 3: shot_3_2(southpaw);  break;
-          case 4: shot_1_3(southpaw);  break;
-          case 5: shot_2_3(southpaw);  break;
-          case 6: shot_3_4(southpaw);  break;
-       }
-       break;
-    }
-    case 2: { //triple shot
-       int tripleShotProbs[10] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
-       switch(getRandomActionFromProbability(tripleShotProbs, 10)) {
-          case 0: shot_1_2_3(southpaw);  break;
-          case 1: shot_3_1_3(southpaw);  break;
-          case 2: shot_1_3_1(southpaw);  break;
-          case 3: shot_3_4_2(southpaw);  break;
-          case 4: shot_1_1_2(southpaw);  break;
-          case 5: shot_1_2_1(southpaw);  break;
-          case 6: shot_3_4_3(southpaw);  break;
-          case 7: shot_1_2_2(southpaw);  break;
-          case 8: shot_1_4_3(southpaw);  break;
-          case 9: shot_2_3_2(southpaw);  break;
-       }
-       break;
-    }
-    case 3: { //quadruple shot
-       int quadrupleShotProbs[7] = {15, 14, 14, 14, 15, 14, 14};
-       switch(getRandomActionFromProbability(quadrupleShotProbs, 7)) {
-          case 0: shot_1_2_3_4(southpaw);  break;
-          case 1: shot_3_4_3_3(southpaw);  break;
-          case 2: shot_1_2_3_2(southpaw);  break;
-          case 3: shot_3_4_2_1(southpaw);  break;
-          case 4: shot_1_2_1_2(southpaw);  break;
-          case 5: shot_3_4_3_2(southpaw);  break;
-          case 6: shot_1_2_1_1(southpaw);  break;
-       }
-       break;
-    }
-    default: startPosition();
-   }
 
-  shotCount++;
-}
-
-//update state of buttons
-void updateButtonStates() {
-  buttonBack = digitalRead(19);
-  buttonOk   = digitalRead(18);
-  buttonUp   = digitalRead(17);
-  buttonDown = digitalRead(16);
+  switch(state) {
+    case START: 
+    case STOP:
+      return;
+  }
   
-  Serial.print("Button states: back: ");
-  Serial.print(buttonBack);
-  Serial.print(" - ok: ");
-  Serial.print(buttonOk);
-  Serial.print(" - up: ");
-  Serial.print(buttonUp);
-  Serial.print(" - down: ");
-  Serial.print(buttonDown);
-  Serial.println(";");
+	switch(action) {
+		case 0: { //single shot
+			int singleShotProbs[2] = {50, 50};
+			switch(getRandomActionFromProbability(singleShotProbs, 2)) {
+				case 0: shot_1(southpaw); break;
+				case 1: shot_3(southpaw); break;
+			}
+			break;
+		}
+		case 1: { //double shot
+			int doubleShotProbs[7] = {15, 14, 14, 14, 15, 14, 14};
+			switch(getRandomActionFromProbability(doubleShotProbs, 7)) {
+				case 0: shot_1_2(southpaw);  break;
+				case 1: shot_3_3(southpaw);  break;
+				case 2: shot_1_1(southpaw);  break;
+				case 3: shot_3_2(southpaw);  break;
+				case 4: shot_1_3(southpaw);  break;
+				case 5: shot_2_3(southpaw);  break;
+				case 6: shot_3_4(southpaw);  break;
+			}
+			break;
+		}
+		case 2: { //triple shot
+			int tripleShotProbs[10] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+			switch(getRandomActionFromProbability(tripleShotProbs, 10)) {
+				case 0: shot_1_2_3(southpaw);  break;
+				case 1: shot_3_1_3(southpaw);  break;
+				case 2: shot_1_3_1(southpaw);  break;
+				case 3: shot_3_4_2(southpaw);  break;
+				case 4: shot_1_1_2(southpaw);  break;
+				case 5: shot_1_2_1(southpaw);  break;
+				case 6: shot_3_4_3(southpaw);  break;
+				case 7: shot_1_2_2(southpaw);  break;
+				case 8: shot_1_4_3(southpaw);  break;
+				case 9: shot_2_3_2(southpaw);  break;
+			}
+			break;
+		}
+		case 3: { //quadruple shot
+			int quadrupleShotProbs[7] = {15, 14, 14, 14, 15, 14, 14};
+			switch(getRandomActionFromProbability(quadrupleShotProbs, 7)) {
+				case 0: shot_1_2_3_4(southpaw);  break;
+				case 1: shot_3_4_3_3(southpaw);  break;
+				case 2: shot_1_2_3_2(southpaw);  break;
+				case 3: shot_3_4_2_1(southpaw);  break;
+				case 4: shot_1_2_1_2(southpaw);  break;
+				case 5: shot_3_4_3_2(southpaw);  break;
+				case 6: shot_1_2_1_1(southpaw);  break;
+			}
+			break;
+		}
+		default: startPosition();
+	}
+
+	shotCount++;
 }
 
 void setup() {
-  Serial.begin(115200);
-  initServoDriver();
-  initDisplay();
-  //initWiFi();
+	Serial.begin(115200);
+	initServoDriver();
+	initDisplay();
+	//initWiFi();
 }
 
 void loop() {
-	
-  //button actions
-  updateButtonStates();
-  //..
+	displayLevelMenu();
 
-  //random action state based
-  int action = getActionFromState();
-  checkChangeSide();
-  executeAction(action);
-  delay(getRandomWaitTime());
+	//random action state based
+	int action = getActionFromState();
+	checkChangeSide();
+	executeAction(action);
+
+  displayLevelMenu();
+	delay(getRandomWaitTime());
 }
