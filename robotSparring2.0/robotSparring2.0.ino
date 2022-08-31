@@ -1,9 +1,18 @@
 //http://arduino.esp8266.com/stable/package_esp8266com_index.json
 //https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 
-//ESP-WROOM-32 38 PIN Develeopment
-//TOOLS->Board->ESP32 Arduino->DOIT ESP32 DEVKIT V1
+/****************************************************************************************************************************************************
+ * SETUP ENVIROMENT FOR "ESP-WROOM-32 38 PIN Develeopment" chip:
+ * link: https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
+ *
+ * 1) Additional Board Manager URLs: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+ * OR: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json, http://arduino.esp8266.com/stable/package_esp8266com_index.json
+ * 2) Tools > Board > Boards Manager -> install "ESP32 by Espressif Systems"
+ * 3) TOOLS->Board->ESP32 Arduino->DOIT ESP32 DEVKIT V1
+ * 4) Tools > Port and select the COM port 
+ ****************************************************************************************************************************************************/
 
+ 
 #include "WiFi.h"
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
