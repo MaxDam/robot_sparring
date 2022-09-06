@@ -58,7 +58,7 @@ unsigned long shotCount = 0;
 bool southpaw = true;
 
 //time calibration
-#define SHOT_DURATION   500
+#define SHOT_DURATION   350
 #define SHOT_PAUSE      1000
 
 //right stight calibration
@@ -67,7 +67,7 @@ bool southpaw = true;
 
 //right hook calibration
 #define RIGHT_HOOK_START_DEGREE    35
-#define RIGHT_HOOK_END_DEGREE      140
+#define RIGHT_HOOK_END_DEGREE      135
 
 //left straight calibration
 #define LEFT_STRIGHT_START_DEGREE  20
@@ -727,13 +727,13 @@ int getActionFromState() {
       displayText("Start...");
     
 			startPosition();
-			delay(SHOT_PAUSE);
+			delay(SHOT_DURATION);
 			straightRight();
-			delay(SHOT_PAUSE);
+			delay(SHOT_DURATION);
 			straightLeft();
-			delay(SHOT_PAUSE);
+			delay(SHOT_DURATION);
 			hookRight();
-			delay(SHOT_PAUSE);
+			delay(SHOT_DURATION);
 			hookLeft();
 			
 			state = STOP;
