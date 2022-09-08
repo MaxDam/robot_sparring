@@ -45,15 +45,21 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 #define OLED_RESET    -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-//state
+//level
 #define STOP            0
 #define START           1
 #define EASY            2
 #define MEDIUM          3
 #define PRO             4
+unsigned int level = START;
 
-//vars
-unsigned int state = START;
+//speed
+#define VERYFAST        2
+#define FAST            1
+#define SLOW            0
+unsigned int speed = FAST;
+
+//other properties
 unsigned long shotCount = 0;
 bool southpaw = true;
 
@@ -139,6 +145,42 @@ void displayText(String text) {
 	display.display(); 
 }
 
+//display level and speed
+void displayLevelAndSpeed() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 5);
+  display.println("Level:");
+  display.setTextSize(2);
+  switch(level) {
+    case EASY: 
+      display.println("EASY");
+      break;
+    case MEDIUM:
+      display.println("MEDIUM");
+      break;
+    case PRO:
+      display.println("PRO");
+      break;
+  }
+  display.setTextColor(WHITE);
+  display.setTextSize(1);
+  display.println("Speed:");
+  display.setTextSize(2);
+  switch(speed) {
+    case VERYFAST: 
+      display.println("VERY FAST");
+      break;
+    case FAST:
+      display.println("FAST");
+      break;
+    case SLOW:
+      display.println("SLOW");
+      break;
+  }
+}
+
 //display
 int selected = 0;
 int entered = -1;
@@ -150,36 +192,54 @@ void checkButtons() {
   int enter  = digitalRead(18);
   int back   = digitalRead(19);
   if (back == LOW || enter == LOW || up == LOW || down == LOW) {
-    displayLevelMenu();
+    displayMenu();
   }
 }
 
 //menu
-void displayLevelMenu() {
+void displayMenu() {
   int down   = digitalRead(16);
   int up     = digitalRead(17);
   int enter  = digitalRead(18);
 	int back 	 = digitalRead(19);
   
-	if (up == LOW && down == LOW) {
-	};
+	if (up == LOW && down == LOW) {};
+ 
 	if (up == LOW) {
-    selected = selected - 1;
-    if(selected < 0) selected = 0;
-    delay(200);
+    if(level == STOP) {
+      //goes up in the menu
+      selected = selected - 1;
+      if(selected < 0) selected = 0;
+      delay(200);
+    } else {
+      //increase speed
+      if(speed < VERYFAST) speed++;
+      displayLevelAndSpeed();
+    }
 	};
+  
 	if (down == LOW) {	
-    selected = selected + 1;
-    if(selected > 2) selected = 2;
-    delay(200);
+    if(level == STOP) {
+      //goes down in the menu
+      selected = selected + 1;
+      if(selected > 2) selected = 2;
+      delay(200);
+    } else {
+      //decrease speed
+      if(speed > SLOW) speed--;
+      displayLevelAndSpeed();
+    }
 	};
+  
 	if (enter == LOW) {
 		entered = selected;
 	};
+  
 	if (back == LOW) {
 		entered = -1;
-		state = STOP;
+		level = STOP;
 	};
+  
 	const char *options[3] = {
 		"EASY      ",
 		"MEDIUM    ",
@@ -202,36 +262,16 @@ void displayLevelMenu() {
 		}
 	}
 	else if(entered == 0) {
-		display.clearDisplay();
-		display.setTextSize(1);
-		display.setTextColor(WHITE);
-		display.setCursor(0, 10);
-		display.println("Level:");
-		display.setTextSize(2);
-		display.println("EASY");
-		display.setTextColor(WHITE);
-		state = EASY;
+		level = EASY;
+    displayLevelAndSpeed();
 	} 
 	else if(entered == 1) {
-		display.clearDisplay();
-		display.setTextSize(1);
-		display.setTextColor(WHITE);
-		display.setCursor(0, 10);
-		display.println("Level:");
-		display.setTextSize(2);
-		display.println("MEDIUM");
-		display.setTextColor(WHITE);
-		state = MEDIUM;
+		level = MEDIUM;
+    displayLevelAndSpeed();
 	} 
 	else if(entered == 2) {
-		display.clearDisplay();
-		display.setTextSize(1);
-		display.setTextColor(WHITE);
-		display.setCursor(0, 10);
-		display.println("Level:");
-		display.setTextSize(2);
-		display.println("PRO");
-		state = PRO;
+	  level = PRO;
+    displayLevelAndSpeed();
 	}
 
 	display.display();
@@ -272,35 +312,85 @@ void startPosition() {
   checkButtons();
 }
 
+//executes the shot based on speed
+void shotWithSpeed(int shot, int startDegree, int endDegree) {
+
+  //set step based on the type of shot
+  unsigned int step = 3;
+  switch(shot) {
+    case LEFT_STRAIGHT:
+      step = 4;
+      break;
+    case LEFT_HOOK:
+      step = 5;
+      break;
+    case RIGHT_HOOK:
+      step = 5;
+      break;
+    case RIGHT_STRAIGHT:
+      step = 4;
+      break;
+  }
+
+  //throw the shot based on the speed
+  switch(speed) {
+      case VERYFAST:
+        pwm.setPWM(shot, 0, angleToPulse(endDegree));
+        delay(SHOT_DURATION);
+        pwm.setPWM(shot, 0, angleToPulse(startDegree));
+        break;
+      case FAST:
+        for (int angle = startDegree; angle <= endDegree; angle+=step) {
+          pwm.setPWM(shot, 0, angleToPulse(angle));
+          delay(30);
+        }
+        //delay(SHOT_DURATION);
+        pwm.setPWM(shot, 0, angleToPulse(startDegree));
+        break;
+      case SLOW:
+        for (int angle = startDegree; angle <= endDegree; angle+=step) {
+          pwm.setPWM(shot, 0, angleToPulse(angle));
+          delay(40);
+        }
+        //delay(SHOT_DURATION);
+        pwm.setPWM(shot, 0, angleToPulse(startDegree));
+        break;
+  }
+}
+
 void straightRight() {
-	//displayText("straight right");
-	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_END_DEGREE));
-	delay(SHOT_DURATION);
-	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_START_DEGREE));
-  checkButtons();
+  //displayText("straight right");
+  //pwm.setPWM(shotName, 0, angleToPulse(endDegree));
+  //delay(SHOT_DURATION);
+  //pwm.setPWM(shotName, 0, angleToPulse(startDegree));
+  shotWithSpeed(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE, RIGHT_STRIGHT_END_DEGREE);
+	checkButtons();
 }
 
 void straightLeft() {
 	//displayText("straight left");
-	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_END_DEGREE));
-	delay(SHOT_DURATION);
-	pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
+	//pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_END_DEGREE));
+	//delay(SHOT_DURATION);
+	//pwm.setPWM(LEFT_STRAIGHT, 0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
+  shotWithSpeed(LEFT_STRAIGHT, LEFT_STRIGHT_START_DEGREE, LEFT_STRIGHT_END_DEGREE);
   checkButtons();
 }
 
 void hookRight() {
 	//displayText("hook right");
-	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_END_DEGREE));
-	delay(SHOT_DURATION);
-	pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_START_DEGREE));
+	//pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_END_DEGREE));
+	//delay(SHOT_DURATION);
+	//pwm.setPWM(RIGHT_HOOK, 0, angleToPulse(RIGHT_HOOK_START_DEGREE));
+  shotWithSpeed(RIGHT_HOOK, RIGHT_HOOK_START_DEGREE, RIGHT_HOOK_END_DEGREE);
   checkButtons();
 }
 
 void hookLeft() {
 	//displayText("hook left");
-	pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_END_DEGREE));
-	delay(SHOT_DURATION);
-	pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_START_DEGREE));
+	//pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_END_DEGREE));
+	//delay(SHOT_DURATION);
+	//pwm.setPWM(LEFT_HOOK, 0, angleToPulse(LEFT_HOOK_START_DEGREE));
+  shotWithSpeed(LEFT_HOOK, LEFT_HOOK_START_DEGREE, LEFT_HOOK_END_DEGREE);
   checkButtons();
 }
 
@@ -688,7 +778,7 @@ int getRandomWaitTime() {
      
 	unsigned int waitingTimeMult = 0;
     
-    switch(state) {
+    switch(level) {
       case EASY: {
         int timeProbs[4] = {19, 27, 27, 27};
         waitingTimeMult = getRandomActionFromProbability(timeProbs, 4);
@@ -719,10 +809,10 @@ void waitShotPauseTime() {
   }
 }
 
-//get action (random probability) state based
+//get action (random probability) level based
 int getActionFromState() {
 	int action = 0;
-	switch(state) {
+	switch(level) {
 		case START: {
       displayText("Start...");
     
@@ -736,7 +826,7 @@ int getActionFromState() {
 			delay(SHOT_DURATION);
 			hookLeft();
 			
-			state = STOP;
+			level = STOP;
       action = 0;
       break;
 		}
@@ -844,9 +934,9 @@ void setup() {
 }
 
 void loop() {
-	displayLevelMenu();
+	displayMenu();
 
-	//random action state based
+	//random action level based
 	int action = getActionFromState();
 	checkChangeSide();
 	executeAction(action);
