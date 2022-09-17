@@ -69,19 +69,19 @@ bool southpaw = true;
 
 //right stight calibration
 #define RIGHT_STRIGHT_START_DEGREE 20
-#define RIGHT_STRIGHT_END_DEGREE   90
+#define RIGHT_STRIGHT_END_DEGREE   95
 
 //right hook calibration
 #define RIGHT_HOOK_START_DEGREE    35
-#define RIGHT_HOOK_END_DEGREE      135
+#define RIGHT_HOOK_END_DEGREE      105
 
 //left straight calibration
-#define LEFT_STRIGHT_START_DEGREE  20
-#define LEFT_STRIGHT_END_DEGREE    80
+#define LEFT_STRIGHT_START_DEGREE  15
+#define LEFT_STRIGHT_END_DEGREE    85
 
 //left hook calibration
 #define LEFT_HOOK_START_DEGREE     35
-#define LEFT_HOOK_END_DEGREE       120
+#define LEFT_HOOK_END_DEGREE       95
 
 //drive servo (angle -> pulse)
 int angleToPulse(int ang){
@@ -319,7 +319,8 @@ void shotWithSpeed(int shot, int startDegree, int endDegree) {
   unsigned int step = 3;
   switch(shot) {
     case LEFT_STRAIGHT:
-      step = 4;
+      //step = 4;
+      step = 5;
       break;
     case LEFT_HOOK:
       step = 5;
@@ -328,7 +329,8 @@ void shotWithSpeed(int shot, int startDegree, int endDegree) {
       step = 5;
       break;
     case RIGHT_STRAIGHT:
-      step = 4;
+      //step = 4;
+      step = 5;
       break;
   }
 
