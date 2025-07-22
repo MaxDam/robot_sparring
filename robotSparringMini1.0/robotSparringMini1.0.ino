@@ -200,7 +200,7 @@ const char index_html[] PROGMEM = R"rawliteral(
           return;
         }
 
-        fetch("/api/start", {
+        fetch("/api/execute", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ azione, tipo, difficolta })
@@ -232,7 +232,7 @@ void setup() {
 
   dnsServer.start(DNS_PORT, "*", myIP);
 
-  server.on("/api/start", HTTP_POST, []() {
+  server.on("/api/execute", HTTP_POST, []() {
     if (server.hasArg("plain")) {
       String body = server.arg("plain");
       Serial.println("Dati ricevuti:");

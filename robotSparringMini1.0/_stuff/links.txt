@@ -1,0 +1,5 @@
+Using Servo Motors with ESP32:
+https://dronebotworkshop.com/esp32-servo/
+
+How to Set an ESP32 Access Point (AP) for Web Server:
+https://randomnerdtutorials.com/esp32-access-point-ap-web-server/

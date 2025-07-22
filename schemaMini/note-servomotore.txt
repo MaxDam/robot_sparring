@@ -1,0 +1,20 @@
+Vecchio servo:
+Velocità:0.19sec/60 gradi a (5v), 0.17sec/60 gradi at(6.8v)
+Coppia:18.5kg.cm.at(5v), 21kg.cm.at(6.8v)
+Tensione:4.8v-6.8v
+
+Nuovo servo:
+Tensione operativa: 4,8 V-8,4 V
+Velocità senza carico: 0,24 sec/60°    0,17 secondi/60°
+Corrente di funzionamento: 140 mA 200 mA
+Coppia di stallo di picco: 29,5 kg.cm 32 kg.cm
+Corrente di stallo: 2600 mA±10% 3400 mA±10%
+Intervallo di tensione di lavoro: 4,8-8,4 V
+Specifiche di controllo
+Segnale di comando: modifica della larghezza dell'impulso
+Tipo di amplificatore: controller digitale
+Intervallo di larghezza dell'impulso: 500~2500usec
+Posizione neutra: 1500usec
+Grado di corsa: 180°/270°/360°±3°(quando 500~2500usec)
+Larghezza della banda morta: 5 usec
+Direzione di rotazione: in senso antiorario (quando 1000~2000usec)
