@@ -18,6 +18,8 @@ const byte DNS_PORT = 53;
 const int servoPin = 18;
 int pwmValue = 1500; // neutro
 
+int pos = 0;
+
 const char htmlPage[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
@@ -78,12 +80,20 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     <h1>Taratura Servo 360°</h1>
     <p>PWM: <span id="pwmVal">1500</span> µs</p>
     <input type="range" min="500" max="2500" value="1500" id="slider" oninput="updatePWM(this.value)">
+
+    <h1>Angolo servo</h1>
+    <p>PWM: <span id="angleVal">1500</span></p>
+    <input type="range" min="-180" max="180" value="0" id="slider" oninput="updateAngle(this.value)">
     
     <script>
       function updatePWM(val) {
         document.getElementById("pwmVal").innerText = val;
         fetch("/setPWM?value=" + val);
-      }
+      };
+      function updateAngle(val) {
+        document.getElementById("angleVal").innerText = val;
+        fetch("/setAngle?value=" + val);
+      };
     </script>
   </body>
 </html>
@@ -97,9 +107,13 @@ void setup() {
   Serial.println(myIP);
   dnsServer.start(DNS_PORT, "*", myIP);
 
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
   myservo.setPeriodHertz(50);
   myservo.attach(servoPin, 500, 2500);
-  myservo.writeMicroseconds(pwmValue);
+  //myservo.writeMicroseconds(pwmValue);
 
   server.on("/", HTTP_GET, []() {
     server.send_P(200, "text/html", htmlPage);
@@ -112,6 +126,15 @@ void setup() {
       myservo.writeMicroseconds(pwmValue);
       Serial.print("PWM: ");
       Serial.println(pwmValue);
+    }
+    
+    server.send(200, "text/plain", "OK");
+  });
+
+  server.on("/setAngle", HTTP_GET, []() {
+    if (server.hasArg("value")) {
+      pos = server.arg("value").toInt();
+      myservo.write(pos);
     }
     server.send(200, "text/plain", "OK");
   });
