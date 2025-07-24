@@ -18,8 +18,6 @@ const byte DNS_PORT = 53;
 const int servoPin = 18;
 int pwmValue = 1500; // neutro
 
-int pos = 0;
-
 const char htmlPage[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
@@ -74,9 +72,51 @@ const char htmlPage[] PROGMEM = R"rawliteral(
         font-weight: bold;
         color: #333;
       }
+
+      .button-container {
+        display: flex;
+        gap: 10px;
+        margin: 20px;
+      }
+  
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
+
+    <h1>Azioni</h1>
+    <div class="button-container">
+      <button onclick="sendAction(document.getElementById('velDestraVeloce').value)">RF</button>
+      <button onclick="sendAction(document.getElementById('velDestraLenta').value)">RS</button>
+      <button onclick="sendAction(1500)">Stop</button>
+      <button onclick="sendAction(document.getElementById('velSinistraLenta').value)">LS</button>
+      <button onclick="sendAction(document.getElementById('velSinistraVeloce').value)">LF</button>
+    </div>
+
+    <h1>Parametri di Velocità</h1>
+     <div>
+        <label for="velDestraVeloce">Destra Veloce</label><br>
+        <input type="number" id="velDestraVeloce" value="2000" min="500" max="2500">
+      </div>
+     <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+      <div>
+        <label for="velDestraLenta">Destra Lenta</label><br>
+        <input type="number" id="velDestraLenta" value="1600" min="500" max="2500">
+      </div>
+     <div>
+        <label for="velSinistraLenta">Sinistra Lenta</label><br>
+        <input type="number" id="velSinistraLenta" value="1200" min="500" max="2500">
+      </div>
+      <div>
+        <label for="velSinistraVeloce">Sinistra Veloce</label><br>
+        <input type="number" id="velSinistraVeloce" value="900" min="500" max="2500">
+      </div>
+    </div>
+  
     <h1>Taratura Servo 360°</h1>
     <p>PWM: <span id="pwmVal">1500</span> µs</p>
     <input type="range" min="500" max="2500" value="1500" id="slider" oninput="updatePWM(this.value)">
@@ -84,6 +124,10 @@ const char htmlPage[] PROGMEM = R"rawliteral(
     <h1>Angolo servo</h1>
     <p>PWM: <span id="angleVal">1500</span></p>
     <input type="range" min="-180" max="180" value="0" id="slider" oninput="updateAngle(this.value)">
+
+    <h1>Pulse servo</h1>
+    <p>PWM: <span id="pulseVal">180</span></p>
+    <input type="range" min="-0" max="270" value="0" id="slider" oninput="updatePulse(this.value)">
     
     <script>
       function updatePWM(val) {
@@ -93,6 +137,13 @@ const char htmlPage[] PROGMEM = R"rawliteral(
       function updateAngle(val) {
         document.getElementById("angleVal").innerText = val;
         fetch("/setAngle?value=" + val);
+      };
+      function updatePulse(val) {
+        document.getElementById("pulseVal").innerText = val;
+        fetch("/setPulse?value=" + val);
+      };
+      function sendAction(val) {
+        fetch("/setAction?value=" + val);
       };
     </script>
   </body>
@@ -107,13 +158,14 @@ void setup() {
   Serial.println(myIP);
   dnsServer.start(DNS_PORT, "*", myIP);
 
-  ESP32PWM::allocateTimer(0);
-  ESP32PWM::allocateTimer(1);
-  ESP32PWM::allocateTimer(2);
-  ESP32PWM::allocateTimer(3);
+  //ESP32PWM::allocateTimer(0);
+  //ESP32PWM::allocateTimer(1);
+  //ESP32PWM::allocateTimer(2);
+  //ESP32PWM::allocateTimer(3);
   myservo.setPeriodHertz(50);
   myservo.attach(servoPin, 500, 2500);
-  //myservo.writeMicroseconds(pwmValue);
+  //myservo.attach(servoPin);
+  myservo.writeMicroseconds(pwmValue);
 
   server.on("/", HTTP_GET, []() {
     server.send_P(200, "text/html", htmlPage);
@@ -133,8 +185,26 @@ void setup() {
 
   server.on("/setAngle", HTTP_GET, []() {
     if (server.hasArg("value")) {
-      pos = server.arg("value").toInt();
+      int pos = server.arg("value").toInt();
       myservo.write(pos);
+    }
+    server.send(200, "text/plain", "OK");
+  });
+
+  server.on("/setPulse", HTTP_GET, []() {
+    if (server.hasArg("value")) {
+      int pos = server.arg("value").toInt();
+      int pulse = map(pos, 0, 270, 500, 2500);
+      myservo.write(pulse);
+    }
+    server.send(200, "text/plain", "OK");
+  });
+
+  server.on("/setAction", HTTP_GET, []() {
+    if (server.hasArg("value")) {
+      int pwmValue = server.arg("value").toInt();
+      pwmValue = constrain(pwmValue, 500, 2500);
+      myservo.writeMicroseconds(pwmValue);
     }
     server.send(200, "text/plain", "OK");
   });
