@@ -15,7 +15,7 @@ Servo myservo;
 DNSServer dnsServer;
 const byte DNS_PORT = 53;
 
-const int servoPin = 18;
+const int servoPin = 17;
 int pwmValue = 1500; // neutro
 
 const char htmlPage[] PROGMEM = R"rawliteral(
@@ -88,7 +88,7 @@ const char htmlPage[] PROGMEM = R"rawliteral(
   </head>
   <body>
 
-    <h1>Azioni</h1>
+    <h1>Azioni 360</h1>
     <div class="button-container">
       <button onclick="sendAction(document.getElementById('velDestraVeloce').value)">RF</button>
       <button onclick="sendAction(document.getElementById('velDestraLenta').value)">RS</button>
@@ -97,15 +97,15 @@ const char htmlPage[] PROGMEM = R"rawliteral(
       <button onclick="sendAction(document.getElementById('velSinistraVeloce').value)">LF</button>
     </div>
 
-    <h1>Parametri di Velocità</h1>
+    <h1>Parametri di Velocità 360</h1>
      <div>
         <label for="velDestraVeloce">Destra Veloce</label><br>
-        <input type="number" id="velDestraVeloce" value="2000" min="500" max="2500">
+        <input type="number" id="velDestraVeloce" value="2500" min="500" max="2500">
       </div>
      <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
       <div>
         <label for="velDestraLenta">Destra Lenta</label><br>
-        <input type="number" id="velDestraLenta" value="1600" min="500" max="2500">
+        <input type="number" id="velDestraLenta" value="1800" min="500" max="2500">
       </div>
      <div>
         <label for="velSinistraLenta">Sinistra Lenta</label><br>
@@ -113,38 +113,41 @@ const char htmlPage[] PROGMEM = R"rawliteral(
       </div>
       <div>
         <label for="velSinistraVeloce">Sinistra Veloce</label><br>
-        <input type="number" id="velSinistraVeloce" value="900" min="500" max="2500">
+        <input type="number" id="velSinistraVeloce" value="600" min="500" max="2500">
       </div>
     </div>
-  
-    <h1>Taratura Servo 360°</h1>
+
+    <h1>Velocità manuale 360</h1>
     <p>PWM: <span id="pwmVal">1500</span> µs</p>
     <input type="range" min="500" max="2500" value="1500" id="slider" oninput="updatePWM(this.value)">
 
-    <h1>Angolo servo</h1>
-    <p>PWM: <span id="angleVal">1500</span></p>
-    <input type="range" min="-180" max="180" value="0" id="slider" oninput="updateAngle(this.value)">
+    <h1>Angolo 180</h1>
+    <p>PWM: <span id="angle180Val">90</span></p>
+    <input type="range" min="0" max="180" value="90" id="slider" oninput="updatePulse180(this.value)">
 
-    <h1>Pulse servo</h1>
-    <p>PWM: <span id="pulseVal">180</span></p>
-    <input type="range" min="-0" max="270" value="0" id="slider" oninput="updatePulse(this.value)">
-    
+    <h1>Angolo 270</h1>
+    <p>PWM: <span id="angle270Val">135</span></p>
+    <input type="range" min="0" max="270" value="135" id="slider" oninput="updatePulse270(this.value)">
+
+    <br><br><br>
+ 
     <script>
+      function sendAction(val) {
+        fetch("/setAction?value=" + val);
+      };
       function updatePWM(val) {
         document.getElementById("pwmVal").innerText = val;
         fetch("/setPWM?value=" + val);
       };
-      function updateAngle(val) {
-        document.getElementById("angleVal").innerText = val;
-        fetch("/setAngle?value=" + val);
+      function updatePulse180(val) {
+        document.getElementById("angle180Val").innerText = val;
+        fetch("/setPulse180?value=" + val);
       };
-      function updatePulse(val) {
-        document.getElementById("pulseVal").innerText = val;
-        fetch("/setPulse?value=" + val);
+      function updatePulse270(val) {
+        document.getElementById("angle270Val").innerText = val;
+        fetch("/setPulse270?value=" + val);
       };
-      function sendAction(val) {
-        fetch("/setAction?value=" + val);
-      };
+      
     </script>
   </body>
 </html>
@@ -158,13 +161,21 @@ void setup() {
   Serial.println(myIP);
   dnsServer.start(DNS_PORT, "*", myIP);
 
-  //ESP32PWM::allocateTimer(0);
-  //ESP32PWM::allocateTimer(1);
-  //ESP32PWM::allocateTimer(2);
-  //ESP32PWM::allocateTimer(3);
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
   myservo.setPeriodHertz(50);
   myservo.attach(servoPin, 500, 2500);
-  //myservo.attach(servoPin);
+
+  myservo.writeMicroseconds(pwmValue);
+  delay(500);
+  myservo.writeMicroseconds(1200);
+  delay(500);
+  myservo.writeMicroseconds(1800);
+  delay(1000);
+  myservo.writeMicroseconds(1200);
+  delay(500);
   myservo.writeMicroseconds(pwmValue);
 
   server.on("/", HTTP_GET, []() {
@@ -191,7 +202,16 @@ void setup() {
     server.send(200, "text/plain", "OK");
   });
 
-  server.on("/setPulse", HTTP_GET, []() {
+  server.on("/setPulse180", HTTP_GET, []() {
+    if (server.hasArg("value")) {
+      int pos = server.arg("value").toInt();
+      int pulse = map(pos, 0, 180, 500, 2500);
+      myservo.write(pulse);
+    }
+    server.send(200, "text/plain", "OK");
+  });
+
+  server.on("/setPulse270", HTTP_GET, []() {
     if (server.hasArg("value")) {
       int pos = server.arg("value").toInt();
       int pulse = map(pos, 0, 270, 500, 2500);
