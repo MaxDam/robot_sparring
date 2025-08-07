@@ -179,12 +179,15 @@ void setup() {
   //myservo.writeMicroseconds(pwmValue);
 
   delay(500);
-  myservo.write(map(0, 0, 180, 500, 2500));
+  myservo.write(0);
   delay(500);
-  myservo.write(map(180, 0, 180, 500, 2500));
+  myservo.write(90);
   delay(500);
-  myservo.write(map(90, 0, 180, 500, 2500));
-  
+  myservo.write(180);
+  delay(500);
+  myservo.write(270);
+  delay(500);
+  myservo.write(90);
 
   server.on("/", HTTP_GET, []() {
     server.send_P(200, "text/html", htmlPage);
