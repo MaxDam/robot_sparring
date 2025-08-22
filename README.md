@@ -5,16 +5,10 @@ Robot Sparring is a robot that helps you train in boxing; He has 4 arms and make
 https://www.hackster.io/maxdam75/robot-sparring-79726e
 
 ### Logo
-<table width="800" style="border: none;">
-<tr>
-	<td style="border: none;">
-		<img src="./schema/logo-robot-sparring.jpg" width=400>
-	</td>
-	<td style="border: none;">
-		<img src="./schema/robotsparring.jpg" width=400>
-	</td>
-</tr>
-</table>
+<p>
+<img src="./schema/logo-robot-sparring.jpg" width=400>
+<img src="./schema/robotsparring.jpg" width=400>
+</p>
 
 ### Schema
 <img src="./schema/schema3.jpg" width=800>
