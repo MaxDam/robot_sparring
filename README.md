@@ -7,8 +7,12 @@ https://www.hackster.io/maxdam75/robot-sparring-79726e
 ### Logo
 <table width="800" border=0>
 <tr>
-	<td><img src="./schema/logo-robot-sparring.jpg" width=400></td>
-	<td><img src="./schema/robotsparring.jpg" width=400></td>
+	<td style="border: 0px;">
+		<img src="./schema/logo-robot-sparring.jpg" width=400>
+	</td>
+	<td style="border: 0px;">
+		<img src="./schema/robotsparring.jpg" width=400>
+	</td>
 </tr>
 </table>
 
