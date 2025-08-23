@@ -29,15 +29,14 @@ const byte DNS_PORT = 53;
 
 //servo driver calibration
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
-#define SERVO_MIN_PULSE_WIDTH 125 // this is the 'minimum' pulse length count (out of 4096)
-#define SERVO_MAX_PULSE_WIDTH 575 // this is the 'maximum' pulse length count (out of 4096)
-#define SERVO_FREQUENCY 60
-//#define SERVO_MIN_PULSE_WIDTH 600
-//#define SERVO_MAX_PULSE_WIDTH 2600
-//#define SERVO_FREQUENCY 50
+#define SERVO_MIN_PULSE_WIDTH 125
+#define SERVO_MAX_PULSE_WIDTH 575
+//#define SERVO_MIN_PULSE_WIDTH 500
+//#define SERVO_MAX_PULSE_WIDTH 2500
+#define SERVO_FREQUENCY 50
 
 //joint
-#define LEFT_STRAIGHT	0
+#define LEFT_STRAIGHT	  0
 #define LEFT_HOOK       1
 #define RIGHT_HOOK	    14
 #define RIGHT_STRAIGHT  15
@@ -62,12 +61,13 @@ unsigned long shotCount = 0;
 bool southpaw = true;
 
 //right stight calibration
-#define RIGHT_STRIGHT_START_DEGREE 20
+//#define RIGHT_STRIGHT_START_DEGREE 20
+#define RIGHT_STRIGHT_START_DEGREE 25
 #define RIGHT_STRIGHT_END_DEGREE   95
 
 //right hook calibration
 #define RIGHT_HOOK_START_DEGREE    35
-#define RIGHT_HOOK_END_DEGREE      105
+#define RIGHT_HOOK_END_DEGREE      95
 
 //left straight calibration
 #define LEFT_STRIGHT_START_DEGREE  15
