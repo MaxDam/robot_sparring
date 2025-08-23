@@ -35,6 +35,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 //#define SERVO_MAX_PULSE_WIDTH 2500
 #define SERVO_FREQUENCY 50
 
+
 //joint
 #define LEFT_STRAIGHT	  0
 #define LEFT_HOOK       1
@@ -298,8 +299,10 @@ const char index_html[] PROGMEM = R"rawliteral(
 //drive servo (angle -> pulse)
 int angleToPulse(int ang){
    int pulse = map(ang, 0, 180, SERVO_MIN_PULSE_WIDTH, SERVO_MAX_PULSE_WIDTH); // map angle of 0 to 180 to Servo min and Servo max 
-   Serial.print("Angle: ");Serial.print(ang);
-   Serial.print(" pulse: ");Serial.println(pulse);
+   Serial.print("Angle: ");
+   Serial.print(ang);
+   Serial.print(" pulse: ");
+   Serial.println(pulse);
    return pulse;
 }
 
@@ -350,6 +353,7 @@ void shotWithSpeed(int shot, int startDegree, int endDegree) {
       break;
   }
 
+  
   //throw the shot based on the speed
   switch(speed) {
       case VERYFAST:
