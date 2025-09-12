@@ -23,6 +23,11 @@
 #include <DNSServer.h>
 #include <math.h>
 
+// --- CONFIGURAZIONE IC2 ---
+static const uint8_t I2C_SDA  = 42;
+static const uint8_t I2C_SCL  = 41;
+static const uint32_t I2C_HZ  = 1'000'000; // prova 1 MHz; se instabile, scendi a 400'000
+
 // WiFi and AP
 const char* ssid     = "Robot-Sparring-AP";
 const char* password = "12345678";
@@ -411,9 +416,10 @@ int angleToPulse(int ang){
 //init servo
 void servoInit() {
 	pwm.begin();
-	pwm.setOscillatorFrequency(27000000);
+	//pwm.setOscillatorFrequency(25000000); // 25 MHz tipico
+  pwm.setOscillatorFrequency(27000000);
 	pwm.setPWMFreq(SERVO_FREQUENCY);
-	delay(10);
+  delay(10);
 }
 
 // Function to initialize the access point
@@ -1124,6 +1130,9 @@ void handleSetEndDegree() {
 }
 
 void setup() {
+	Wire.begin(I2C_SDA, I2C_SCL);
+  Wire.setClock(I2C_HZ);
+
 	Serial.begin(115200);
 	accessPointInit();
 	servoInit();

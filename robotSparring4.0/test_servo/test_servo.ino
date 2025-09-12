@@ -9,8 +9,8 @@
 #include <Adafruit_PWMServoDriver.h>
 
 // --- CONFIGURAZIONE HARDWARE ---
-static const uint8_t I2C_SDA  = 21;
-static const uint8_t I2C_SCL  = 22;
+static const uint8_t I2C_SDA  = 42;
+static const uint8_t I2C_SCL  = 41;
 static const uint32_t I2C_HZ  = 1'000'000; // prova 1 MHz; se instabile, scendi a 400'000
 
 // Indirizzo PCA9685 (default 0x40 con A0..A5 a 0)

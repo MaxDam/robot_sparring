@@ -1,5 +1,4 @@
 //https://randomnerdtutorials.com/esp32-hc-sr04-ultrasonic-arduino/
-//https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 //ESP32S3 Dev Module
 //Esp32 S3 DevKitC-1
 
@@ -8,7 +7,7 @@
 const int trigPin = 43;
 const int echoPin = 44;
 
-float threshold = 60.0;
+float threshold = 60.0; // soglia in cm
 
 //define sound speed in cm/uS
 #define SOUND_SPEED 0.034
@@ -24,48 +23,65 @@ float distanceInch;
 Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
-  Serial.begin(115200); // Starts the serial communication
-  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
-  pinMode(echoPin, INPUT);  // Sets the echoPin as an Input
-  
-  led.begin(); // Inizializza il LED
-  led.show();
-  //led.setPixelColor(0, led.Color(255, 0, 0)); // rosso
-  //led.show();
+  Serial.begin(115200); 
+  pinMode(trigPin, OUTPUT); 
+  pinMode(echoPin, INPUT);  
 
-  Serial.print("Start");
+  led.begin(); 
+  led.show();
+
+  Serial.println("Start");
+}
+
+// Funzione di attesa non bloccante interrotta da oggetto vicino
+bool watchDelay(long waitTime) {
+  unsigned long startMillis = millis();
+  unsigned long lastSensorRead = 0;
+  const long sensorInterval = 100; // ms
+
+  while (millis() - startMillis < waitTime) {
+    if (millis() - lastSensorRead >= sensorInterval) {
+      lastSensorRead = millis();
+
+      // Trigger ultrasuoni
+      digitalWrite(trigPin, LOW);
+      delayMicroseconds(2);
+      digitalWrite(trigPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigPin, LOW);
+
+      // Echo
+      duration = pulseIn(echoPin, HIGH, 20000); // timeout 20 ms
+      if (duration > 0) {
+        distanceCm = duration * SOUND_SPEED / 2.0;
+        distanceInch = distanceCm * CM_TO_INCH;
+
+        Serial.print("Distance (cm): ");
+        Serial.println(distanceCm);
+
+        // Controllo LED
+        if (distanceCm < threshold) {
+          led.setPixelColor(0, led.Color(255, 0, 0)); // rosso
+          led.show();
+          Serial.println("Oggetto rilevato! Esco da myDelay.");
+          return true;  // uscita anticipata
+        } else {
+          led.setPixelColor(0, led.Color(0, 0, 0)); // spento
+          led.show();
+        }
+      }
+    }
+  }
+  return false; // uscita per tempo scaduto
 }
 
 void loop() {
-  // Clears the trigPin
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  // Sets the trigPin on HIGH state for 10 micro seconds
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  
-  // Reads the echoPin, returns the sound wave travel time in microseconds
-  duration = pulseIn(echoPin, HIGH);
-  
-  // Calculate the distance
-  distanceCm = duration * SOUND_SPEED/2;
-  
-  // Convert to inches
-  distanceInch = distanceCm * CM_TO_INCH;
-  
-  // Prints the distance in the Serial Monitor
-  Serial.print("Distance (cm): ");
-  Serial.println(distanceCm);
-  Serial.print("Distance (inch): ");
-  Serial.println(distanceInch);
-
-  if(distanceCm < threshold) {
-    led.setPixelColor(0, led.Color(255, 0, 0));
+  bool earlyExit = watchDelay(5000); // attende max 5 sec o meno
+  if (earlyExit) {
+    Serial.println("Loop: rilevato oggetto sotto soglia!");
   } else {
-    led.setPixelColor(0, led.Color(0, 0, 0));
+    Serial.println("Loop: attesa terminata senza rilevamenti.");
   }
-  led.show();
-  
-  delay(100);
+
+  delay(1000); // pausa prima del prossimo ciclo
 }
