@@ -891,15 +891,10 @@ int getRandomWaitTime() {
   }
 }
 
-//wait the shot pause time
-void waitShotPauseTime() {
-  int waitTime = getRandomWaitTime();
-  delay(waitTime);
-  /*
-  for(int i = 0; i < 10; i++) {
-    delay(waitTime/10);
-  }
-  */
+//delay with watch
+bool watchDelay(long waitTime) {
+	// insert here watch sensor code
+	delay(waitTime);
 }
 
 //get action (random probability) level based
@@ -1167,5 +1162,5 @@ void loop() {
 	int action = getActionFromState();
 	checkChangeSide();
 	executeAction(action);
-  waitShotPauseTime();
+  watchDelay(getRandomWaitTime());
 }
