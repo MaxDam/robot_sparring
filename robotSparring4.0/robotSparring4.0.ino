@@ -4,18 +4,7 @@
 //http://arduino.esp8266.com/stable/package_esp8266com_index.json
 //https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 
-/****************************************************************************************************************************************************
- * SETUP ENVIROMENT FOR "ESP-WROOM-32 38 PIN Develeopment" chip:
- * link: https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
- *
- * 1) Additional Board Manager URLs: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
- * OR: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json, http://arduino.esp8266.com/stable/package_esp8266com_index.json
- * 2) Tools > Board > Boards Manager -> install "ESP32 by Espressif Systems"
- * 3) TOOLS->Board->ESP32 Arduino->DOIT ESP32 DEVKIT V1
- * 4) Tools > Port and select the COM port 
- ****************************************************************************************************************************************************/
-
-/*
+/******************************************************************************************************************************************************************
 Board:
 Per ESP32 :   Tools->Board->esp32->DOIT ESP32 DEVKIT V1
 Per ESP32 S3: Tools->Board->esp32->ESP32S3 Dev Module
@@ -33,7 +22,7 @@ articolo di riferimento: https://randomnerdtutorials.com/esp32-ota-elegantota-ar
 3) Il file xxx.ino.bin generato verrà salvato nella cartella del progetto (robotSparring4.0\build\esp32.esp32.esp32s3\robotSparring4.0.ino.bin)
 4) Collegarsi alla rete dell'ESP32 Robot-Sparring-AP - 12345678(
 5) Andare all'indirizzo: http://192.168.4.1/update ed effettuare l'upload del file xxx.ino.bin
-*/
+******************************************************************************************************************************************************************/
 
  
 #include "WiFi.h"
@@ -44,7 +33,7 @@ articolo di riferimento: https://randomnerdtutorials.com/esp32-ota-elegantota-ar
 #include <math.h>
 #include <ElegantOTA.h>
 
-// --- CONFIGURAZIONE IC2 ---
+// CONFIGURAZIONE IC2 PCA9685
 static const uint8_t I2C_SDA  = 42;
 static const uint8_t I2C_SCL  = 41;
 static const uint32_t I2C_HZ  = 1'000'000; // prova 1 MHz; se instabile, scendi a 400'000
@@ -56,62 +45,35 @@ WebServer server(80);
 DNSServer dnsServer;
 const byte DNS_PORT = 53;
 
-//servo driver calibration
+//servo driver calibrationc:\ONEDRIVER\OneDrive - Exprivia Spa\WORKSPACE-ML\robot_sparring\robotSparring4.0\test_servo\test_servo.ino
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 
-//first range 123-491
-unsigned int SERVO_MIN_PULSE_WIDTH = 123;
-unsigned int SERVO_MAX_PULSE_WIDTH = 491;
-unsigned int SERVO_FREQUENCY = 40;
 
-//second range 180-310
-//unsigned int SERVO_MIN_PULSE_WIDTH = 180;
-//unsigned int SERVO_MAX_PULSE_WIDTH = 310;
-//unsigned int SERVO_FREQUENCY = 40;
+// PARAMETRI SERVO (RDS3120 o BLS-HV20KG-180)
+// P.S. Se noti che a 0° o 180° tocca meccanicamente, riduci un po’ i limiti (es. 600–2400 µs)
+static const float SERVO_MIN_US = 500.0f;
+static const float SERVO_MAX_US = 2500.0f;  
+static const float SERVO_NEU_US = 1500.0f;
 
+// Impostiamo 50 Hz per servi classici
+static const float SERVO_FREQ_HZ = 50.0f;
 
-//right stight calibration
+//right stight range
+unsigned int RIGHT_STRIGHT_START_DEGREE = 0;
+unsigned int RIGHT_STRIGHT_END_DEGREE   = 45;
 
-//first range 123-491
-unsigned int RIGHT_STRIGHT_START_DEGREE = 25;
-unsigned int RIGHT_STRIGHT_END_DEGREE   = 80;
+//right hook range
+unsigned int RIGHT_HOOK_START_DEGREE = 0;
+unsigned int RIGHT_HOOK_END_DEGREE   = 45;
 
-//second range  180-310
-//unsigned int RIGHT_STRIGHT_START_DEGREE = 0;
-//unsigned int RIGHT_STRIGHT_END_DEGREE   = 160;
-
-
-//left straight calibration
-
-//first range 123-491
-unsigned int LEFT_STRIGHT_START_DEGREE = 25;
-unsigned int LEFT_STRIGHT_END_DEGREE   = 80;
-
-//second range  180-310
-//unsigned int LEFT_STRIGHT_START_DEGREE = 0;
-//unsigned int LEFT_STRIGHT_END_DEGREE   = 160;
+//left straight range
+unsigned int LEFT_STRIGHT_START_DEGREE = 0;
+unsigned int LEFT_STRIGHT_END_DEGREE   = -45;
 
 
-//right hook calibration
-
-//first range 123-491
-unsigned int RIGHT_HOOK_START_DEGREE = 25;
-unsigned int RIGHT_HOOK_END_DEGREE   = 75;
-
-//second range  180-310
-//unsigned int RIGHT_HOOK_START_DEGREE = 0;
-//unsigned int RIGHT_HOOK_END_DEGREE   = 145;
-
-
-//left hook calibration
-
-//first range 123-491
-unsigned int LEFT_HOOK_START_DEGREE = 25;
-unsigned int LEFT_HOOK_END_DEGREE   = 75;
-
-//second  range  180-310
-//unsigned int LEFT_HOOK_START_DEGREE   = 0;
-//unsigned int LEFT_HOOK_END_DEGREE     = 145;
+//left hook range
+unsigned int LEFT_HOOK_START_DEGREE = 0;
+unsigned int LEFT_HOOK_END_DEGREE   = -45;
 
 
 //joint
@@ -147,8 +109,29 @@ unsigned long shotCount = 0;
 bool southpaw = true;
 
 //Servo wait
-int pauseMax     = 1000;
-int shotDuration = 310;
+int pauseMax = 1000;
+
+// BLS-HV20KG-180
+// Velocità dichiarata ~0.06 s / 60° @7,4–8,4V => ~1 ms/°, per 75° -> ~75 ms + un margine.
+int shotDuration = 120;
+
+
+// DINSTANCE SR04
+const int trigPin = 43;
+const int echoPin = 44;
+
+float threshold = 60.0; // soglia in cm
+
+//define sound speed in cm/uS
+#define SOUND_SPEED 0.034
+#define CM_TO_INCH 0.393701
+
+long duration;
+float distanceCm;
+float distanceInch;
+
+
+// CONFIGURATION WEB PAGE
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -299,7 +282,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       <option value="0">Slow</option>
     </select>
 	<label for="pauseSelect">Pause:</label>
-    <select id="pauseSelect">
+    <select id="pauseSelect">c:\ONEDRIVER\OneDrive - Exprivia Spa\WORKSPACE-ML\robot_sparring\robotSparring4.0\test_distance\test_distance.ino
       <option value="3">Long</option>
       <option value="2">Medium</option>
       <option value="1">Short</option>
@@ -424,6 +407,35 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
+// UTILITY: conversioni ---
+inline uint16_t usToTicks(float us, float pwmHz) {
+  // PCA9685: 12 bit (0..4095), periodo = 1/pwmHz (es. 20'000 us @ 50 Hz)
+  const float period_us = 1e6f / pwmHz;
+  float ticks = (us / period_us) * 4096.0f; // 4096 step per periodo
+  if (ticks < 0)   ticks = 0;
+  if (ticks > 4095) ticks = 4095;
+  return (uint16_t)(ticks + 0.5f);
+}
+
+inline float clamp(float v, float lo, float hi) {
+  return (v < lo) ? lo : (v > hi ? hi : v);
+}
+
+// Converte gradi [0..180] in microsecondi, rimappando linearmente tra SERVO_MIN_US e SERVO_MAX_US
+float angleDegToUs(float deg) {
+  deg = clamp(deg, 0.0f, 180.0f);
+  // 0° -> MIN_US, 180° -> MAX_US
+  return SERVO_MIN_US + (SERVO_MAX_US - SERVO_MIN_US) * (deg / 180.0f);
+}
+
+// Scrive l’angolo su un canale
+void writeAngle(uint8_t ch, float deg) {
+  float us = angleDegToUs(deg);
+  uint16_t off = usToTicks(us, SERVO_FREQ_HZ);
+  // on=0, off=calcolato: impulso “alto” da 0 a off
+  pwm.setPWM(ch, 0, off);
+}
+
 //drive servo (angle -> pulse)
 int angleToPulse(int ang){
    int pulse = map(ang, 0, 180, SERVO_MIN_PULSE_WIDTH, SERVO_MAX_PULSE_WIDTH); // map angle of 0 to 180 to Servo min and Servo max 
@@ -437,9 +449,8 @@ int angleToPulse(int ang){
 //init servo
 void servoInit() {
 	pwm.begin();
-	//pwm.setOscillatorFrequency(25000000); // 25 MHz tipico
-  pwm.setOscillatorFrequency(27000000);
-	pwm.setPWMFreq(SERVO_FREQUENCY);
+  pwm.setOscillatorFrequency(25000000); // 25 MHz tipico
+  pwm.setPWMFreq(SERVO_FREQ_HZ);
   delay(10);
 }
 
@@ -455,10 +466,10 @@ void accessPointInit() {
 //basic movements
 
 void startPosition() {
-	pwm.setPWM(RIGHT_STRAIGHT, 0, angleToPulse(RIGHT_STRIGHT_START_DEGREE));
-	pwm.setPWM(LEFT_STRAIGHT,  0, angleToPulse(LEFT_STRIGHT_START_DEGREE));
-	pwm.setPWM(RIGHT_HOOK,     0, angleToPulse(RIGHT_HOOK_START_DEGREE));
-	pwm.setPWM(LEFT_HOOK,      0, angleToPulse(LEFT_HOOK_START_DEGREE));
+	writeAngle(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE);
+	writeAngle(LEFT_STRAIGHT,  LEFT_STRIGHT_START_DEGREE);
+	writeAngle(RIGHT_HOOK,     RIGHT_HOOK_START_DEGREE);
+	writeAngle(LEFT_HOOK,      LEFT_HOOK_START_DEGREE);
 }
 
 
@@ -489,25 +500,25 @@ void shotWithSpeed(int shot, int startDegree, int endDegree) {
   //throw the shot based on the speed
   switch(speed) {
       case VERYFAST: {
-        pwm.setPWM(shot, 0, angleToPulse(endDegree));
+				writeAngle(shot, endDegree);
         delay(shotDuration);
-        pwm.setPWM(shot, 0, angleToPulse(startDegree));
+        writeAngle(shot, startDegree);
         break;
       }
       case FAST: {
         for (int angle = startDegree; angle <= endDegree; angle+=step) {
-          pwm.setPWM(shot, 0, angleToPulse(angle));
+          writeAngle(shot, angle);
           delay(30);
         }
-        pwm.setPWM(shot, 0, angleToPulse(startDegree));
+        writeAngle(shot, startDegree);
         break;
       }
       case SLOW: {
         for (int angle = startDegree; angle <= endDegree; angle+=step) {
-          pwm.setPWM(shot, 0, angleToPulse(angle));
+          writeAngle(shot, angle);
           delay(40);
         }
-        pwm.setPWM(shot, 0, angleToPulse(startDegree));
+        writeAngle(shot, startDegree);
         break;
       }
   }
@@ -916,6 +927,47 @@ int getRandomWaitTime() {
 bool watchDelay(long waitTime) {
 	// insert here watch sensor code
 	delay(waitTime);
+}
+
+bool watchDelayNew(long waitTime) {
+  unsigned long startMillis = millis();
+  unsigned long lastSensorRead = 0;
+  const long sensorInterval = 100; // ms
+
+  while (millis() - startMillis < waitTime) {
+    if (millis() - lastSensorRead >= sensorInterval) {
+      lastSensorRead = millis();
+
+      // Trigger ultrasuoni
+      digitalWrite(trigPin, LOW);
+      delayMicroseconds(2);
+      digitalWrite(trigPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigPin, LOW);
+
+      // Echo
+      duration = pulseIn(echoPin, HIGH, 20000); // timeout 20 ms
+      if (duration > 0) {
+        distanceCm = duration * SOUND_SPEED / 2.0;
+        distanceInch = distanceCm * CM_TO_INCH;
+
+        Serial.print("Distance (cm): ");
+        Serial.println(distanceCm);
+
+        // Controllo LED
+        if (distanceCm < threshold) {
+          led.setPixelColor(0, led.Color(255, 0, 0)); // rosso
+          led.show();
+          Serial.println("Oggetto rilevato! Esco da myDelay.");
+          return true;  // uscita anticipata
+        } else {
+          led.setPixelColor(0, led.Color(0, 0, 0)); // spento
+          led.show();
+        }
+      }
+    }
+  }
+  return false; // uscita per tempo scaduto
 }
 
 //get action (random probability) level based
