@@ -15,6 +15,26 @@
  * 4) Tools > Port and select the COM port 
  ****************************************************************************************************************************************************/
 
+/*
+Board:
+Per ESP32 :   Tools->Board->esp32->DOIT ESP32 DEVKIT V1
+Per ESP32 S3: Tools->Board->esp32->ESP32S3 Dev Module
+
+Librerie da installare:
+- Adafruit PWM Servo Driver Library 3.0.2 by Adafruit
+- Adafruit BusIO 1.17.2 by Adafruit (dipendenza automatica)
+- ElegantOTA 3.1.7 by Ayush Sharma
+- ESP32Servo 3.0.9 by K.Harrington, J.K.Bennet
+
+Per compilare in modalità OTA (Over-the-Air):
+articolo di riferimento: https://randomnerdtutorials.com/esp32-ota-elegantota-arduino/
+1) Compilare il codice: Sketch->Verify/Compile (Crtl+R)
+2) Esportare il compilato: Sketch->Export Compiled Binary (Alt+Ctrl+S) 
+3) Il file xxx.ino.bin generato verrà salvato nella cartella del progetto (robotSparring4.0\build\esp32.esp32.esp32s3\robotSparring4.0.ino.bin)
+4) Collegarsi alla rete dell'ESP32 Robot-Sparring-AP - 12345678(
+5) Andare all'indirizzo: http://192.168.4.1/update ed effettuare l'upload del file xxx.ino.bin
+*/
+
  
 #include "WiFi.h"
 #include <Wire.h>
@@ -22,6 +42,7 @@
 #include <WebServer.h>
 #include <DNSServer.h>
 #include <math.h>
+#include <ElegantOTA.h>
 
 // --- CONFIGURAZIONE IC2 ---
 static const uint8_t I2C_SDA  = 42;
@@ -1126,7 +1147,7 @@ void handleSetEndDegree() {
 
 void setup() {
 	Wire.begin(I2C_SDA, I2C_SCL);
-  Wire.setClock(I2C_HZ);
+	Wire.setClock(I2C_HZ);
 
 	Serial.begin(115200);
 	accessPointInit();
@@ -1142,25 +1163,35 @@ void setup() {
 	server.on("/setPauseMax",    HTTP_GET, handleSetPauseMax);
 	server.on("/shot",           HTTP_GET, handleShot);
 
-  server.on("/setFrequency",   HTTP_GET, handleSetFrequency);
-  server.on("/setMinPulse",    HTTP_GET, handleSetMinPulse);
-  server.on("/setMaxPulse",    HTTP_GET, handleSetMaxPulse);
-  server.on("/setStartDegree", HTTP_GET, handleSetStartDegree);
-  server.on("/setEndDegree",   HTTP_GET, handleSetEndDegree);
+	server.on("/setFrequency",   HTTP_GET, handleSetFrequency);
+	server.on("/setMinPulse",    HTTP_GET, handleSetMinPulse);
+	server.on("/setMaxPulse",    HTTP_GET, handleSetMaxPulse);
+	server.on("/setStartDegree", HTTP_GET, handleSetStartDegree);
+	server.on("/setEndDegree",   HTTP_GET, handleSetEndDegree);
   
 	server.onNotFound([]() {
 		server.send_P(200, "text/html", index_html);
 	});
+	
+	ElegantOTA.begin(&server);
 	server.begin();
 }
 
 void loop() {
+	//server loops
 	dnsServer.processNextRequest();
-  server.handleClient();
+	server.handleClient();
+	ElegantOTA.loop();
 
-	//random action level based
+	//get random action
 	int action = getActionFromState();
+	
+	//check shot side
 	checkChangeSide();
+	
+	//execute action (starts the punch running servo motors)
 	executeAction(action);
-  watchDelay(getRandomWaitTime());
+	
+	//wait before striking the next blow shot
+	watchDelay(getRandomWaitTime());
 }
