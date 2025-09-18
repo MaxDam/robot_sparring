@@ -32,6 +32,7 @@ articolo di riferimento: https://randomnerdtutorials.com/esp32-ota-elegantota-ar
 #include <DNSServer.h>
 #include <math.h>
 #include <ElegantOTA.h>
+#include <Adafruit_NeoPixel.h>
 
 // CONFIGURAZIONE IC2 PCA9685
 static const uint8_t I2C_SDA  = 42;
@@ -60,20 +61,20 @@ static const float SERVO_FREQ_HZ = 50.0f;
 
 //right stight range
 unsigned int RIGHT_STRIGHT_START_DEGREE = 0;
-unsigned int RIGHT_STRIGHT_END_DEGREE   = 45;
+unsigned int RIGHT_STRIGHT_END_DEGREE   = 100;
 
 //right hook range
 unsigned int RIGHT_HOOK_START_DEGREE = 0;
-unsigned int RIGHT_HOOK_END_DEGREE   = 45;
+unsigned int RIGHT_HOOK_END_DEGREE   = 100;
 
 //left straight range
-unsigned int LEFT_STRIGHT_START_DEGREE = 0;
-unsigned int LEFT_STRIGHT_END_DEGREE   = -45;
+unsigned int LEFT_STRIGHT_START_DEGREE = 180;
+unsigned int LEFT_STRIGHT_END_DEGREE   = 80;
 
 
 //left hook range
-unsigned int LEFT_HOOK_START_DEGREE = 0;
-unsigned int LEFT_HOOK_END_DEGREE   = -45;
+unsigned int LEFT_HOOK_START_DEGREE = 180;
+unsigned int LEFT_HOOK_END_DEGREE   = 80;
 
 
 //joint
@@ -99,9 +100,10 @@ unsigned int speed = VERYFAST;
 
 //pause level
 #define NEVER        0
-#define SHORT        1
-#define MEDIUM       2
-#define LONG         3
+#define BYRANGE      1
+#define SHORT        2
+#define MEDIUM       3
+#define LONG         4
 unsigned int shotPause = NEVER;
 
 //other properties
@@ -113,7 +115,7 @@ int pauseMax = 1000;
 
 // BLS-HV20KG-180
 // Velocità dichiarata ~0.06 s / 60° @7,4–8,4V => ~1 ms/°, per 75° -> ~75 ms + un margine.
-int shotDuration = 120;
+int shotDuration = 200;
 
 
 // DINSTANCE SR04
@@ -129,6 +131,12 @@ float threshold = 60.0; // soglia in cm
 long duration;
 float distanceCm;
 float distanceInch;
+
+
+// LED
+#define LED_PIN 48      // Pin del LED RGB
+#define NUM_LEDS 1      // C’è solo un LED
+Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 
 // CONFIGURATION WEB PAGE
@@ -283,9 +291,10 @@ const char index_html[] PROGMEM = R"rawliteral(
     </select>
 	<label for="pauseSelect">Pause:</label>
     <select id="pauseSelect">c:\ONEDRIVER\OneDrive - Exprivia Spa\WORKSPACE-ML\robot_sparring\robotSparring4.0\test_distance\test_distance.ino
-      <option value="3">Long</option>
-      <option value="2">Medium</option>
-      <option value="1">Short</option>
+      <option value="4">Long</option>
+      <option value="3">Medium</option>
+      <option value="2">Short</option>
+      <option value="1">By range</option>
     </select>
     <br>
     <button id="startBtn">Start</button>
@@ -307,43 +316,33 @@ const char index_html[] PROGMEM = R"rawliteral(
   <!-- TAB 2: CONFIG -->
   <div id="tab2" class="tab-content" style="display:none;">
     <div style="margin-top:20px;">
-      <label for="pauseMaxRange">Pause max (ms):</label>
-      <input type="range" id="pauseMaxRange" min="300" max="3000" value="1000" oninput="setPauseMax(this.value)"/>
-      <span id="pauseMaxValue" class="slider-value">1000</span>
+      <label for="thresholdRange">Threshold (cm):</label>
+      <input type="range" id="thresholdRange" min="10" max="300" value="30" oninput="setThreshold(this.value)"/>
+      <span id="thresholdValue" class="slider-value">30</span>
     </div>
     <div style="margin-top:30px;">
       <label for="delaySlider">Servo delay (ms):</label>
-      <input type="range" id="delaySlider" min="200" max="600" value="310" oninput="setDelay(this.value)"/>
-      <span id="delayValue" class="slider-value">310</span>
+      <input type="range" id="delaySlider" min="50" max="600" value="200" oninput="setDelay(this.value)"/>
+      <span id="delayValue" class="slider-value">200</span>
+    </div>
+    <div style="margin-top:20px;">
+      <label for="pauseMaxRange">Pause max (ms):</label>
+      <input type="range" id="pauseMaxRange" min="300" max="3000" value="1000" oninput="setPauseMax(this.value)"/>
+      <span id="pauseMaxValue" class="slider-value">1000</span>
     </div>
   </div>
 
   <!-- TAB 3: SERVO CONFIG -->
   <div id="tab3" class="tab-content" style="display:none;">
     <div style="margin-top:30px;">
-      <label for="frequencySlider">Servo frequency:</label>
-      <input type="range" id="frequencySlider" min="30" max="80" value="40" oninput="setFrequency(this.value)"/>
-      <span id="frequencyValue" class="slider-value">40</span>
-    </div>
-    <div style="margin-top:30px;">
-      <label for="minPulseSlider">Servo min pulse:</label>
-      <input type="range" id="minPulseSlider" min="80" max="200" value="123" oninput="setMinPulse(this.value)"/>
-      <span id="minPulseValue" class="slider-value">123</span>
-    </div>
-    <div style="margin-top:30px;">
-      <label for="maxPulseSlider">Servo max pulse:</label>
-      <input type="range" id="maxPulseSlider" min="250" max="600" value="491" oninput="setMaxPulse(this.value)"/>
-      <span id="maxPulseValue" class="slider-value">491</span>
-    </div>
-    <div style="margin-top:30px;">
       <label for="startDegreeSlider">Servo start degree:</label>
-      <input type="range" id="startDegreeSlider" min="0" max="180" value="25" oninput="setStartDegree(this.value)"/>
-      <span id="startDegreeValue" class="slider-value">25</span>
+      <input type="range" id="startDegreeSlider" min="0" max="180" value="0" oninput="setStartDegree(this.value)"/>
+      <span id="startDegreeValue" class="slider-value">0</span>
     </div>
     <div style="margin-top:30px;">
       <label for="endDegreeSlider">Servo end degree:</label>
-      <input type="range" id="endDegreeSlider" min="5" max="180" value="80" oninput="setEndDegree(this.value)"/>
-      <span id="endDegreeValue" class="slider-value">80</span>
+      <input type="range" id="endDegreeSlider" min="0" max="180" value="45" oninput="setEndDegree(this.value)"/>
+      <span id="endDegreeValue" class="slider-value">45</span>
     </div>
   </div>
 
@@ -368,17 +367,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       fetch('/shot?arm=' + arm + '&speed=' + speed); 
     }
 
-    function setFrequency(val) {
-      document.getElementById("frequencyValue").innerText = val;
-      fetch('/setFrequency?val=' + val); 
-    }
-    function setMinPulse(val) {
-      document.getElementById("minPulseValue").innerText = val;
-      fetch('/setMinPulse?val=' + val); 
-    }
-    function setMaxPulse(val) {
-      document.getElementById("maxPulseValue").innerText = val;
-      fetch('/setMaxPulse?val=' + val); 
+    function setThreshold(val) {
+      document.getElementById("thresholdValue").innerText = val;
+      fetch('/setThreshold?val=' + val); 
     }
     function setStartDegree(val) {
       document.getElementById("startDegreeValue").innerText = val;
@@ -434,16 +425,6 @@ void writeAngle(uint8_t ch, float deg) {
   uint16_t off = usToTicks(us, SERVO_FREQ_HZ);
   // on=0, off=calcolato: impulso “alto” da 0 a off
   pwm.setPWM(ch, 0, off);
-}
-
-//drive servo (angle -> pulse)
-int angleToPulse(int ang){
-   int pulse = map(ang, 0, 180, SERVO_MIN_PULSE_WIDTH, SERVO_MAX_PULSE_WIDTH); // map angle of 0 to 180 to Servo min and Servo max 
-   Serial.print("Angle: ");
-   Serial.print(ang);
-   Serial.print(" pulse: ");
-   Serial.println(pulse);
-   return pulse;
 }
 
 //init servo
@@ -917,19 +898,26 @@ int getRandomWaitTime() {
         waitingTimeMult = getRandomActionFromProbability(timeProbs, num);
         return shotDuration + waitingTimeMult * pauseMax;
       }
+      case BYRANGE: {
+        int num = 5;
+        int timeProbs[num] = {2, 24, 24, 24, 24};
+        waitingTimeMult = getRandomActionFromProbability(timeProbs, num);
+        return shotDuration + waitingTimeMult * pauseMax;
+      }
       default: {
         return shotDuration;
       }
   }
 }
 
+//@deprecated
 //delay with watch
-bool watchDelay(long waitTime) {
+bool watchDelayOld(long waitTime) {
 	// insert here watch sensor code
 	delay(waitTime);
 }
 
-bool watchDelayNew(long waitTime) {
+bool watchDelay(long waitTime) {
   unsigned long startMillis = millis();
   unsigned long lastSensorRead = 0;
   const long sensorInterval = 100; // ms
@@ -954,13 +942,17 @@ bool watchDelayNew(long waitTime) {
         Serial.print("Distance (cm): ");
         Serial.println(distanceCm);
 
-        // Controllo LED
+        // Controllo LED ed uscita pausa
         if (distanceCm < threshold) {
           led.setPixelColor(0, led.Color(255, 0, 0)); // rosso
           led.show();
-          Serial.println("Oggetto rilevato! Esco da myDelay.");
-          return true;  // uscita anticipata
-        } else {
+          Serial.println("Persona rilevata!");
+
+          if(shotPause == BYRANGE) {
+            return true; // uscita anticipata
+          }
+        } 
+        else {
           led.setPixelColor(0, led.Color(0, 0, 0)); // spento
           led.show();
         }
@@ -1145,30 +1137,10 @@ void handleShot() {
   server.send(200, "text/plain", "OK");
 }
 
-
-void handleSetFrequency() {
+void handleSetThreshold() {
   if (server.hasArg("val")) {
     int val = server.arg("val").toInt();
-    SERVO_FREQUENCY = val;
-    shotPause = NEVER;
-  }
-  server.send(200, "text/plain", "OK");
-}
-
-void handleSetMinPulse() {
-  if (server.hasArg("val")) {
-    int val = server.arg("val").toInt();
-    SERVO_MIN_PULSE_WIDTH = val;
-    shotPause = NEVER;
-  }
-  server.send(200, "text/plain", "OK");
-}
-
-void handleSetMaxPulse() {
-  if (server.hasArg("val")) {
-    int val = server.arg("val").toInt();
-    SERVO_MAX_PULSE_WIDTH = val;
-    shotPause = NEVER;
+    threshold = val;
   }
   server.send(200, "text/plain", "OK");
 }
@@ -1177,9 +1149,9 @@ void handleSetStartDegree() {
   if (server.hasArg("val")) {
     int val = server.arg("val").toInt();
     RIGHT_STRIGHT_START_DEGREE  = val;
-    LEFT_STRIGHT_START_DEGREE   = val;
     RIGHT_HOOK_START_DEGREE     = val;
-    LEFT_HOOK_START_DEGREE      = val;
+    LEFT_STRIGHT_START_DEGREE   = val * -1;
+    LEFT_HOOK_START_DEGREE      = val * -1;
     shotPause = NEVER;
   }
   server.send(200, "text/plain", "OK");
@@ -1188,10 +1160,10 @@ void handleSetStartDegree() {
 void handleSetEndDegree() {
   if (server.hasArg("val")) {
     int val = server.arg("val").toInt();
-    RIGHT_STRIGHT_END_DEGREE  = val;
+    RIGHT_STRIGHT_END_DEGREE  = 180 - val;
+    RIGHT_HOOK_END_DEGREE     = 180 - val;
     LEFT_STRIGHT_END_DEGREE   = val;
-    RIGHT_HOOK_END_DEGREE     = val-5;
-    LEFT_HOOK_END_DEGREE      = val-5;
+    LEFT_HOOK_END_DEGREE      = val;
     shotPause = NEVER;
   }
   server.send(200, "text/plain", "OK");
@@ -1205,6 +1177,9 @@ void setup() {
 	accessPointInit();
 	servoInit();
 
+  led.begin(); 
+  led.show();
+
 	server.on("/", HTTP_GET, []() {
     	server.send_P(200, "text/html", index_html);
 	});
@@ -1215,9 +1190,7 @@ void setup() {
 	server.on("/setPauseMax",    HTTP_GET, handleSetPauseMax);
 	server.on("/shot",           HTTP_GET, handleShot);
 
-	server.on("/setFrequency",   HTTP_GET, handleSetFrequency);
-	server.on("/setMinPulse",    HTTP_GET, handleSetMinPulse);
-	server.on("/setMaxPulse",    HTTP_GET, handleSetMaxPulse);
+  server.on("/setThreshold",   HTTP_GET, handleSetThreshold);
 	server.on("/setStartDegree", HTTP_GET, handleSetStartDegree);
 	server.on("/setEndDegree",   HTTP_GET, handleSetEndDegree);
   
