@@ -119,8 +119,8 @@ int shotDuration = 200;
 
 
 // DINSTANCE SR04
-const int trigPin = 43;
-const int echoPin = 44;
+const int trigPin = 40;
+const int echoPin = 39;
 
 float threshold = 60.0; // soglia in cm
 
@@ -434,6 +434,15 @@ void servoInit() {
   pwm.setPWMFreq(SERVO_FREQ_HZ);
   delay(10);
 }
+
+//init distnace sensor
+void distanceSensorInit() {
+		pinMode(trigPin, OUTPUT); 
+		pinMode(echoPin, INPUT);  
+
+		led.begin(); 
+		led.show();
+	}
 
 // Function to initialize the access point
 void accessPointInit() {
@@ -910,13 +919,7 @@ int getRandomWaitTime() {
   }
 }
 
-//@deprecated
-//delay with watch
-bool watchDelayOld(long waitTime) {
-	// insert here watch sensor code
-	delay(waitTime);
-}
-
+//delay with watch (sensor dinstance)
 bool watchDelay(long waitTime) {
   unsigned long startMillis = millis();
   unsigned long lastSensorRead = 0;
@@ -926,7 +929,7 @@ bool watchDelay(long waitTime) {
     if (millis() - lastSensorRead >= sensorInterval) {
       lastSensorRead = millis();
 
-      // Trigger ultrasuoni
+      // Ultrasonic trigger
       digitalWrite(trigPin, LOW);
       delayMicroseconds(2);
       digitalWrite(trigPin, HIGH);
@@ -942,24 +945,24 @@ bool watchDelay(long waitTime) {
         Serial.print("Distance (cm): ");
         Serial.println(distanceCm);
 
-        // Controllo LED ed uscita pausa
+        // Check dinstance
         if (distanceCm < threshold) {
-          led.setPixelColor(0, led.Color(255, 0, 0)); // rosso
+          Serial.println("Attacco avversario rilevato!");
+					led.setPixelColor(0, led.Color(255, 0, 0)); // led red light
           led.show();
-          Serial.println("Persona rilevata!");
-
+          
           if(shotPause == BYRANGE) {
             return true; // uscita anticipata
           }
         } 
         else {
-          led.setPixelColor(0, led.Color(0, 0, 0)); // spento
+          led.setPixelColor(0, led.Color(0, 0, 0)); // led power off
           led.show();
         }
       }
     }
   }
-  return false; // uscita per tempo scaduto
+  return false; // exit for timeout
 }
 
 //get action (random probability) level based
@@ -968,7 +971,7 @@ int getActionFromState() {
 	switch(level) {
 		case START: {    
 			startPosition();
-			delay(shotDuration);
+			delay(2000);
 			straightRight();
 			delay(shotDuration);
 			straightLeft();
@@ -1176,9 +1179,8 @@ void setup() {
 	Serial.begin(115200);
 	accessPointInit();
 	servoInit();
-
-  led.begin(); 
-  led.show();
+	distanceSensorInit();
+  
 
 	server.on("/", HTTP_GET, []() {
     	server.send_P(200, "text/html", index_html);
