@@ -60,21 +60,21 @@ static const float SERVO_NEU_US = 1500.0f;
 static const float SERVO_FREQ_HZ = 50.0f;
 
 //right stight range
-unsigned int RIGHT_STRIGHT_START_DEGREE = 0+15;
-unsigned int RIGHT_STRIGHT_END_DEGREE   = 100;
+unsigned int RIGHT_STRIGHT_START_DEGREE = 25;
+unsigned int RIGHT_STRIGHT_END_DEGREE   = 130;
 
 //right hook range
-unsigned int RIGHT_HOOK_START_DEGREE = 0+15;
-unsigned int RIGHT_HOOK_END_DEGREE   = 100;
+unsigned int RIGHT_HOOK_START_DEGREE = 25;
+unsigned int RIGHT_HOOK_END_DEGREE   = 130;
 
 //left straight range
-unsigned int LEFT_STRIGHT_START_DEGREE = 180-15;
-unsigned int LEFT_STRIGHT_END_DEGREE   = 180-100;
+unsigned int LEFT_STRIGHT_START_DEGREE = 180-25;
+unsigned int LEFT_STRIGHT_END_DEGREE   = 180-130;
 
 
 //left hook range
-unsigned int LEFT_HOOK_START_DEGREE = 180-15;
-unsigned int LEFT_HOOK_END_DEGREE   = 180-100;
+unsigned int LEFT_HOOK_START_DEGREE = 180-25;
+unsigned int LEFT_HOOK_END_DEGREE   = 180-130;
 
 
 //joint
@@ -115,12 +115,12 @@ int pauseMax = 1000;
 
 // BLS-HV20KG-180
 // Velocità dichiarata ~0.06 s / 60° @7,4–8,4V => ~1 ms/°, per 75° -> ~75 ms + un margine.
-int shotDuration = 200;
+int shotDuration = 240;
 
 
 // DINSTANCE SR04
-const int trigPin = 40;
-const int echoPin = 39;
+const int trigPin = 39;
+const int echoPin = 40;
 
 float threshold = 60.0; // soglia in cm
 
@@ -336,13 +336,13 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div id="tab3" class="tab-content" style="display:none;">
     <div style="margin-top:30px;">
       <label for="startDegreeSlider">Servo start degree:</label>
-      <input type="range" id="startDegreeSlider" min="0" max="180" value="0" oninput="setStartDegree(this.value)"/>
-      <span id="startDegreeValue" class="slider-value">0</span>
+      <input type="range" id="startDegreeSlider" min="0" max="180" value="25" oninput="setStartDegree(this.value)"/>
+      <span id="startDegreeValue" class="slider-value">25</span>
     </div>
     <div style="margin-top:30px;">
       <label for="endDegreeSlider">Servo end degree:</label>
-      <input type="range" id="endDegreeSlider" min="0" max="180" value="45" oninput="setEndDegree(this.value)"/>
-      <span id="endDegreeValue" class="slider-value">45</span>
+      <input type="range" id="endDegreeSlider" min="0" max="180" value="130" oninput="setEndDegree(this.value)"/>
+      <span id="endDegreeValue" class="slider-value">130</span>
     </div>
   </div>
 
@@ -442,6 +442,12 @@ void distanceSensorInit() {
 
 		led.begin(); 
 		led.show();
+
+		//led.setPixelColor(0, led.Color(255, 0, 0)); // led red light
+    //led.show();
+		//delay(2000);
+    //led.setPixelColor(0, led.Color(0, 0, 0)); // led power off
+    //led.show();
 	}
 
 // Function to initialize the access point
@@ -908,10 +914,7 @@ int getRandomWaitTime() {
         return shotDuration + waitingTimeMult * pauseMax;
       }
       case BYRANGE: {
-        int num = 5;
-        int timeProbs[num] = {2, 24, 24, 24, 24};
-        waitingTimeMult = getRandomActionFromProbability(timeProbs, num);
-        return shotDuration + waitingTimeMult * pauseMax;
+        return pauseMax * 5;
       }
       default: {
         return shotDuration;
@@ -1153,8 +1156,8 @@ void handleSetStartDegree() {
     int val = server.arg("val").toInt();
     RIGHT_STRIGHT_START_DEGREE  = val;
     RIGHT_HOOK_START_DEGREE     = val;
-    LEFT_STRIGHT_START_DEGREE   = val * -1;
-    LEFT_HOOK_START_DEGREE      = val * -1;
+    LEFT_STRIGHT_START_DEGREE   = 180 - val;
+    LEFT_HOOK_START_DEGREE      = 180 - val;
     shotPause = NEVER;
   }
   server.send(200, "text/plain", "OK");
@@ -1163,10 +1166,10 @@ void handleSetStartDegree() {
 void handleSetEndDegree() {
   if (server.hasArg("val")) {
     int val = server.arg("val").toInt();
-    RIGHT_STRIGHT_END_DEGREE  = 180 - val;
-    RIGHT_HOOK_END_DEGREE     = 180 - val;
-    LEFT_STRIGHT_END_DEGREE   = val;
-    LEFT_HOOK_END_DEGREE      = val;
+    RIGHT_STRIGHT_END_DEGREE  = val;
+    RIGHT_HOOK_END_DEGREE     = val;
+    LEFT_STRIGHT_END_DEGREE   = 180 - val;
+    LEFT_HOOK_END_DEGREE      = 180 - val;
     shotPause = NEVER;
   }
   server.send(200, "text/plain", "OK");
