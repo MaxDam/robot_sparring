@@ -60,21 +60,21 @@ static const float SERVO_NEU_US = 1500.0f;
 static const float SERVO_FREQ_HZ = 50.0f;
 
 //right stight range
-unsigned int RIGHT_STRIGHT_START_DEGREE = 0;
+unsigned int RIGHT_STRIGHT_START_DEGREE = 0+15;
 unsigned int RIGHT_STRIGHT_END_DEGREE   = 100;
 
 //right hook range
-unsigned int RIGHT_HOOK_START_DEGREE = 0;
+unsigned int RIGHT_HOOK_START_DEGREE = 0+15;
 unsigned int RIGHT_HOOK_END_DEGREE   = 100;
 
 //left straight range
-unsigned int LEFT_STRIGHT_START_DEGREE = 180;
-unsigned int LEFT_STRIGHT_END_DEGREE   = 80;
+unsigned int LEFT_STRIGHT_START_DEGREE = 180-15;
+unsigned int LEFT_STRIGHT_END_DEGREE   = 180-100;
 
 
 //left hook range
-unsigned int LEFT_HOOK_START_DEGREE = 180;
-unsigned int LEFT_HOOK_END_DEGREE   = 80;
+unsigned int LEFT_HOOK_START_DEGREE = 180-15;
+unsigned int LEFT_HOOK_END_DEGREE   = 180-100;
 
 
 //joint
