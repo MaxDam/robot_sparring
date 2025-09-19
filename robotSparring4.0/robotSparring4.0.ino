@@ -37,7 +37,8 @@ articolo di riferimento: https://randomnerdtutorials.com/esp32-ota-elegantota-ar
 // CONFIGURAZIONE IC2 PCA9685
 static const uint8_t I2C_SDA  = 42;
 static const uint8_t I2C_SCL  = 41;
-static const uint32_t I2C_HZ  = 1'000'000; // prova 1 MHz; se instabile, scendi a 400'000
+//static const uint32_t I2C_HZ  = 1'000'000; // prova 1 MHz; se instabile, scendi a 400'000
+static const uint32_t I2C_HZ  = 400'000;
 
 // WiFi and AP
 const char* ssid     = "Robot-Sparring-AP";
@@ -53,28 +54,30 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 // PARAMETRI SERVO (RDS3120 o BLS-HV20KG-180)
 // P.S. Se noti che a 0° o 180° tocca meccanicamente, riduci un po’ i limiti (es. 600–2400 µs)
 static const float SERVO_MIN_US = 500.0f;
-static const float SERVO_MAX_US = 2500.0f;  
+static const float SERVO_MAX_US = 2500.0f;
 static const float SERVO_NEU_US = 1500.0f;
 
 // Impostiamo 50 Hz per servi classici
 static const float SERVO_FREQ_HZ = 50.0f;
 
 //right stight range
-unsigned int RIGHT_STRIGHT_START_DEGREE = 25;
+unsigned int SHOT_OFFSET = 30;
+
+unsigned int RIGHT_STRIGHT_START_DEGREE = 0;
 unsigned int RIGHT_STRIGHT_END_DEGREE   = 130;
 
 //right hook range
-unsigned int RIGHT_HOOK_START_DEGREE = 25;
+unsigned int RIGHT_HOOK_START_DEGREE = 0;
 unsigned int RIGHT_HOOK_END_DEGREE   = 130;
 
 //left straight range
-unsigned int LEFT_STRIGHT_START_DEGREE = 180-25;
-unsigned int LEFT_STRIGHT_END_DEGREE   = 180-130;
+unsigned int LEFT_STRIGHT_START_DEGREE = 0;
+unsigned int LEFT_STRIGHT_END_DEGREE   = 130;
 
 
 //left hook range
-unsigned int LEFT_HOOK_START_DEGREE = 180-25;
-unsigned int LEFT_HOOK_END_DEGREE   = 180-130;
+unsigned int LEFT_HOOK_START_DEGREE = 0;
+unsigned int LEFT_HOOK_END_DEGREE   = 130;
 
 
 //joint
@@ -317,13 +320,13 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div id="tab2" class="tab-content" style="display:none;">
     <div style="margin-top:20px;">
       <label for="thresholdRange">Threshold (cm):</label>
-      <input type="range" id="thresholdRange" min="10" max="300" value="30" oninput="setThreshold(this.value)"/>
-      <span id="thresholdValue" class="slider-value">30</span>
+      <input type="range" id="thresholdRange" min="10" max="300" value="0" oninput="setThreshold(this.value)"/>
+      <span id="thresholdValue" class="slider-value">0</span>
     </div>
     <div style="margin-top:30px;">
       <label for="delaySlider">Servo delay (ms):</label>
-      <input type="range" id="delaySlider" min="50" max="600" value="200" oninput="setDelay(this.value)"/>
-      <span id="delayValue" class="slider-value">200</span>
+      <input type="range" id="delaySlider" min="50" max="600" value="130" oninput="setDelay(this.value)"/>
+      <span id="delayValue" class="slider-value">110</span>
     </div>
     <div style="margin-top:20px;">
       <label for="pauseMaxRange">Pause max (ms):</label>
@@ -468,6 +471,13 @@ void startPosition() {
 	writeAngle(LEFT_HOOK,      LEFT_HOOK_START_DEGREE);
 }
 
+void beginPosition() {
+	writeAngle(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE + SHOT_OFFSET);
+	writeAngle(LEFT_STRAIGHT,  LEFT_STRIGHT_START_DEGREE + SHOT_OFFSET);
+	writeAngle(RIGHT_HOOK,     RIGHT_HOOK_START_DEGREE + SHOT_OFFSET);
+	writeAngle(LEFT_HOOK,      LEFT_HOOK_START_DEGREE + SHOT_OFFSET);
+}
+
 
 //executes the shot based on speed
 void shotWithSpeed(int shot, int startDegree, int endDegree) {
@@ -521,19 +531,19 @@ void shotWithSpeed(int shot, int startDegree, int endDegree) {
 }
 
 void straightRight() {
-  shotWithSpeed(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE, RIGHT_STRIGHT_END_DEGREE);
+  shotWithSpeed(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE + SHOT_OFFSET, RIGHT_STRIGHT_END_DEGREE);
 }
 
 void straightLeft() {
-  shotWithSpeed(LEFT_STRAIGHT, LEFT_STRIGHT_START_DEGREE, LEFT_STRIGHT_END_DEGREE);
+  shotWithSpeed(LEFT_STRAIGHT, LEFT_STRIGHT_START_DEGREE + SHOT_OFFSET, LEFT_STRIGHT_END_DEGREE);
 }
 
 void hookRight() {
-  shotWithSpeed(RIGHT_HOOK, RIGHT_HOOK_START_DEGREE, RIGHT_HOOK_END_DEGREE);
+  shotWithSpeed(RIGHT_HOOK, RIGHT_HOOK_START_DEGREE + SHOT_OFFSET, RIGHT_HOOK_END_DEGREE);
 }
 
 void hookLeft() {
-  shotWithSpeed(LEFT_HOOK, LEFT_HOOK_START_DEGREE, LEFT_HOOK_END_DEGREE);
+  shotWithSpeed(LEFT_HOOK, LEFT_HOOK_START_DEGREE + SHOT_OFFSET, LEFT_HOOK_END_DEGREE);
 }
 
 //shot combinations
@@ -982,6 +992,8 @@ int getActionFromState() {
 			hookRight();
 			delay(shotDuration);
 			hookLeft();
+			delay(shotDuration);
+ 			beginPosition();
 			
 			level = STOP;
 			action = 0;
@@ -1026,7 +1038,7 @@ void checkChangeSide() {
 void executeAction(int action)  {
   switch(action) {
 	  case 0: { //no action
-      startPosition();
+      beginPosition();
       break;
 	  }
 	  case 1: { //single shot
@@ -1156,8 +1168,8 @@ void handleSetStartDegree() {
     int val = server.arg("val").toInt();
     RIGHT_STRIGHT_START_DEGREE  = val;
     RIGHT_HOOK_START_DEGREE     = val;
-    LEFT_STRIGHT_START_DEGREE   = 180 - val;
-    LEFT_HOOK_START_DEGREE      = 180 - val;
+    LEFT_STRIGHT_START_DEGREE   = val;
+    LEFT_HOOK_START_DEGREE      = val;
     shotPause = NEVER;
   }
   server.send(200, "text/plain", "OK");
@@ -1168,8 +1180,8 @@ void handleSetEndDegree() {
     int val = server.arg("val").toInt();
     RIGHT_STRIGHT_END_DEGREE  = val;
     RIGHT_HOOK_END_DEGREE     = val;
-    LEFT_STRIGHT_END_DEGREE   = 180 - val;
-    LEFT_HOOK_END_DEGREE      = 180 - val;
+    LEFT_STRIGHT_END_DEGREE   = val;
+    LEFT_HOOK_END_DEGREE      = val;
     shotPause = NEVER;
   }
   server.send(200, "text/plain", "OK");
