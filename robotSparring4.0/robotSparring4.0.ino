@@ -37,7 +37,6 @@ articolo di riferimento: https://randomnerdtutorials.com/esp32-ota-elegantota-ar
 // CONFIGURAZIONE IC2 PCA9685
 static const uint8_t I2C_SDA  = 42;
 static const uint8_t I2C_SCL  = 41;
-//static const uint32_t I2C_HZ  = 1'000'000; // prova 1 MHz; se instabile, scendi a 400'000
 static const uint32_t I2C_HZ  = 400'000;
 
 // WiFi and AP
@@ -47,42 +46,54 @@ WebServer server(80);
 DNSServer dnsServer;
 const byte DNS_PORT = 53;
 
-//servo driver calibrationc:\ONEDRIVER\OneDrive - Exprivia Spa\WORKSPACE-ML\robot_sparring\robotSparring4.0\test_servo\test_servo.ino
+//servo driver calibration
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 
-
-// PARAMETRI SERVO (RDS3120 o BLS-HV20KG-180)
+/*
+// PARAMETRI SERVO (BLS-HV20KG-180)
 // P.S. Se noti che a 0° o 180° tocca meccanicamente, riduci un po’ i limiti (es. 600–2400 µs)
-static const float SERVO_MIN_US = 500.0f;
-static const float SERVO_MAX_US = 2500.0f;
+//static const float SERVO_MIN_US = 500.0f;
+//static const float SERVO_MAX_US = 2500.0f;
+static const float SERVO_MIN_US = 600.0f;
+static const float SERVO_MAX_US = 2400.0f;
 static const float SERVO_NEU_US = 1500.0f;
+*/
+
+// PARAMETRI SERVO (BLS-HV20KG-180)
+static const int SERVO_MIN = 80;
+static const int SERVO_MAX = 600;
+//static const int SERVO_MIN = 125;
+//static const int SERVO_MAX = 575;
 
 // Impostiamo 50 Hz per servi classici
 static const float SERVO_FREQ_HZ = 50.0f;
 
-//right stight range
-unsigned int SHOT_OFFSET = 30;
 
-unsigned int RIGHT_STRIGHT_START_DEGREE = 0;
-unsigned int RIGHT_STRIGHT_END_DEGREE   = 130;
+//right stright range
+unsigned int RIGHT_STRIGHT_START_DEGREE = 30;
+unsigned int RIGHT_STRIGHT_END_DEGREE   = 120;
 
 //right hook range
-unsigned int RIGHT_HOOK_START_DEGREE = 0;
-unsigned int RIGHT_HOOK_END_DEGREE   = 130;
+unsigned int RIGHT_HOOK_START_DEGREE = 30;
+unsigned int RIGHT_HOOK_END_DEGREE   = 120;
 
 //left straight range
-unsigned int LEFT_STRIGHT_START_DEGREE = 0;
-unsigned int LEFT_STRIGHT_END_DEGREE   = 130;
-
+unsigned int LEFT_STRIGHT_START_DEGREE = 30;
+unsigned int LEFT_STRIGHT_END_DEGREE   = 120;
 
 //left hook range
-unsigned int LEFT_HOOK_START_DEGREE = 0;
-unsigned int LEFT_HOOK_END_DEGREE   = 130;
+unsigned int LEFT_HOOK_START_DEGREE = 30;
+unsigned int LEFT_HOOK_END_DEGREE   = 120;
 
+/*
+//last servo values (each channel)
+static float lastDeg[16];
+static bool initialized[16];
+*/
 
 //joint
-#define LEFT_STRAIGHT	  0
-#define LEFT_HOOK       1
+#define LEFT_STRAIGHT	  12
+#define LEFT_HOOK       13
 #define RIGHT_HOOK	    14
 #define RIGHT_STRAIGHT  15
 
@@ -117,7 +128,7 @@ bool southpaw = true;
 int pauseMax = 1000;
 
 // BLS-HV20KG-180
-// Velocità dichiarata ~0.06 s / 60° @7,4–8,4V => ~1 ms/°, per 75° -> ~75 ms + un margine.
+// Declarate speed ~0.06 s / 60° @7,4–8,4V => ~1 ms/°, per 75° -> ~75 ms + a margin.
 int shotDuration = 240;
 
 
@@ -131,12 +142,12 @@ float threshold = 60.0; // soglia in cm
 #define SOUND_SPEED 0.034
 #define CM_TO_INCH 0.393701
 
+//radar parameters
 long duration;
 float distanceCm;
 float distanceInch;
 
-
-// LED
+//LED parameters
 #define LED_PIN 48      // Pin del LED RGB
 #define NUM_LEDS 1      // C’è solo un LED
 Adafruit_NeoPixel led(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -150,7 +161,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Robot Sparring</title>
+  <title>Robot Sparring Pro</title>
   <style>
     body { 
       background-color: #2c2c2c; 
@@ -267,7 +278,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-  <h1>ROBOT SPARRING</h1>
+  <h1>ROBOT SPARRING PRO</h1>
 
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab(0)">Actions</button>
@@ -319,9 +330,9 @@ const char index_html[] PROGMEM = R"rawliteral(
   <!-- TAB 2: CONFIG -->
   <div id="tab2" class="tab-content" style="display:none;">
     <div style="margin-top:20px;">
-      <label for="thresholdRange">Threshold (cm):</label>
-      <input type="range" id="thresholdRange" min="10" max="300" value="0" oninput="setThreshold(this.value)"/>
-      <span id="thresholdValue" class="slider-value">0</span>
+      <label for="thresholdRange">Distance threshold (cm):</label>
+      <input type="range" id="thresholdRange" min="10" max="300" value="60" oninput="setThreshold(this.value)"/>
+      <span id="thresholdValue" class="slider-value">60</span>
     </div>
     <div style="margin-top:30px;">
       <label for="delaySlider">Servo delay (ms):</label>
@@ -339,13 +350,13 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div id="tab3" class="tab-content" style="display:none;">
     <div style="margin-top:30px;">
       <label for="startDegreeSlider">Servo start degree:</label>
-      <input type="range" id="startDegreeSlider" min="0" max="180" value="25" oninput="setStartDegree(this.value)"/>
-      <span id="startDegreeValue" class="slider-value">25</span>
+      <input type="range" id="startDegreeSlider" min="0" max="180" value="30" oninput="setStartDegree(this.value)"/>
+      <span id="startDegreeValue" class="slider-value">30</span>
     </div>
     <div style="margin-top:30px;">
       <label for="endDegreeSlider">Servo end degree:</label>
-      <input type="range" id="endDegreeSlider" min="0" max="180" value="130" oninput="setEndDegree(this.value)"/>
-      <span id="endDegreeValue" class="slider-value">130</span>
+      <input type="range" id="endDegreeSlider" min="0" max="180" value="120" oninput="setEndDegree(this.value)"/>
+      <span id="endDegreeValue" class="slider-value">120</span>
     </div>
   </div>
 
@@ -401,7 +412,9 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-// UTILITY: conversioni ---
+//Conversion Utilities
+
+/*
 inline uint16_t usToTicks(float us, float pwmHz) {
   // PCA9685: 12 bit (0..4095), periodo = 1/pwmHz (es. 20'000 us @ 50 Hz)
   const float period_us = 1e6f / pwmHz;
@@ -415,19 +428,34 @@ inline float clamp(float v, float lo, float hi) {
   return (v < lo) ? lo : (v > hi ? hi : v);
 }
 
-// Converte gradi [0..180] in microsecondi, rimappando linearmente tra SERVO_MIN_US e SERVO_MAX_US
+//Converts degrees [0..180] to microseconds, linearly remapping between SERVO_MIN_US and SERVO_MAX_US
 float angleDegToUs(float deg) {
   deg = clamp(deg, 0.0f, 180.0f);
   // 0° -> MIN_US, 180° -> MAX_US
   return SERVO_MIN_US + (SERVO_MAX_US - SERVO_MIN_US) * (deg / 180.0f);
 }
 
-// Scrive l’angolo su un canale
+//write angle to servo channel
 void writeAngle(uint8_t ch, float deg) {
+  deg = clamp(deg, 0.0f, 180.0f);
+
+  //Avoid to write same angle (0.5° tollerance)
+  if (initialized[ch] && fabs(deg - lastDeg[ch]) < 0.5f) {
+    return;
+  }
+
+  lastDeg[ch] = deg;
+  initialized[ch] = true;
+
   float us = angleDegToUs(deg);
   uint16_t off = usToTicks(us, SERVO_FREQ_HZ);
-  // on=0, off=calcolato: impulso “alto” da 0 a off
   pwm.setPWM(ch, 0, off);
+}
+*/
+
+void writeAngle(uint8_t ch, float deg) {
+	int pulse = map(deg, 0, 180, SERVO_MIN, SERVO_MAX);
+	pwm.setPWM(ch, 0, pulse);
 }
 
 //init servo
@@ -443,17 +471,12 @@ void distanceSensorInit() {
 		pinMode(trigPin, OUTPUT); 
 		pinMode(echoPin, INPUT);  
 
-		led.begin(); 
+		led.begin();
+		led.setPixelColor(0, led.Color(0, 0, 0)); 
 		led.show();
-
-		//led.setPixelColor(0, led.Color(255, 0, 0)); // led red light
-    //led.show();
-		//delay(2000);
-    //led.setPixelColor(0, led.Color(0, 0, 0)); // led power off
-    //led.show();
 	}
 
-// Function to initialize the access point
+//function to initialize the access point
 void accessPointInit() {
   WiFi.softAP(ssid, password);
   IPAddress myIP = WiFi.softAPIP();
@@ -471,38 +494,9 @@ void startPosition() {
 	writeAngle(LEFT_HOOK,      LEFT_HOOK_START_DEGREE);
 }
 
-void beginPosition() {
-	writeAngle(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE + SHOT_OFFSET);
-	writeAngle(LEFT_STRAIGHT,  LEFT_STRIGHT_START_DEGREE + SHOT_OFFSET);
-	writeAngle(RIGHT_HOOK,     RIGHT_HOOK_START_DEGREE + SHOT_OFFSET);
-	writeAngle(LEFT_HOOK,      LEFT_HOOK_START_DEGREE + SHOT_OFFSET);
-}
-
 
 //executes the shot based on speed
-void shotWithSpeed(int shot, int startDegree, int endDegree) {
-  //set step based on the type of shot
-  unsigned int step = 3;
-  switch(shot) {
-    case LEFT_STRAIGHT: {
-      step = 5;
-      break;
-    }
-    case LEFT_HOOK: {
-      step = 5;
-      break;
-    }
-    case RIGHT_HOOK: {
-      step = 5;
-      break;
-    }
-    case RIGHT_STRAIGHT: {
-      step = 5;
-      break;
-    }
-  }
-
-  
+void executeShot(int shot, int startDegree, int endDegree) {
   //throw the shot based on the speed
   switch(speed) {
       case VERYFAST: {
@@ -512,39 +506,55 @@ void shotWithSpeed(int shot, int startDegree, int endDegree) {
         break;
       }
       case FAST: {
+				int delay_millis = 40;
+				int step = 20;
         for (int angle = startDegree; angle <= endDegree; angle+=step) {
           writeAngle(shot, angle);
-          delay(30);
+          delay(delay_millis);
         }
-        writeAngle(shot, startDegree);
+				delay(delay_millis);
+				for (int angle = endDegree; angle >= startDegree; angle-=step) {
+          writeAngle(shot, angle);
+          delay(delay_millis);
+        }
+        break;
         break;
       }
       case SLOW: {
+				int delay_millis = 40;
+				int step = 10;
         for (int angle = startDegree; angle <= endDegree; angle+=step) {
           writeAngle(shot, angle);
-          delay(40);
+          delay(delay_millis);
         }
-        writeAngle(shot, startDegree);
+				delay(delay_millis);
+				for (int angle = endDegree; angle >= startDegree; angle-=step) {
+          writeAngle(shot, angle);
+          delay(delay_millis);
+        }
         break;
       }
   }
 }
 
+//base shots
+
 void straightRight() {
-  shotWithSpeed(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE + SHOT_OFFSET, RIGHT_STRIGHT_END_DEGREE);
+  executeShot(RIGHT_STRAIGHT, RIGHT_STRIGHT_START_DEGREE, RIGHT_STRIGHT_END_DEGREE);
 }
 
 void straightLeft() {
-  shotWithSpeed(LEFT_STRAIGHT, LEFT_STRIGHT_START_DEGREE + SHOT_OFFSET, LEFT_STRIGHT_END_DEGREE);
+  executeShot(LEFT_STRAIGHT, LEFT_STRIGHT_START_DEGREE, LEFT_STRIGHT_END_DEGREE);
 }
 
 void hookRight() {
-  shotWithSpeed(RIGHT_HOOK, RIGHT_HOOK_START_DEGREE + SHOT_OFFSET, RIGHT_HOOK_END_DEGREE);
+  executeShot(RIGHT_HOOK, RIGHT_HOOK_START_DEGREE, RIGHT_HOOK_END_DEGREE);
 }
 
 void hookLeft() {
-  shotWithSpeed(LEFT_HOOK, LEFT_HOOK_START_DEGREE + SHOT_OFFSET, LEFT_HOOK_END_DEGREE);
+  executeShot(LEFT_HOOK, LEFT_HOOK_START_DEGREE, LEFT_HOOK_END_DEGREE);
 }
+
 
 //shot combinations
 
@@ -993,7 +1003,7 @@ int getActionFromState() {
 			delay(shotDuration);
 			hookLeft();
 			delay(shotDuration);
- 			beginPosition();
+ 			startPosition();
 			
 			level = STOP;
 			action = 0;
@@ -1038,7 +1048,7 @@ void checkChangeSide() {
 void executeAction(int action)  {
   switch(action) {
 	  case 0: { //no action
-      beginPosition();
+      startPosition();
       break;
 	  }
 	  case 1: { //single shot
