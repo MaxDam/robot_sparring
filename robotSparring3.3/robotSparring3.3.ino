@@ -45,22 +45,22 @@ unsigned int SERVO_FREQUENCY = 40;
 //right stight calibration
 
 unsigned int RIGHT_STRIGHT_START_DEGREE = 10;
-unsigned int RIGHT_STRIGHT_END_DEGREE   = 80;
+unsigned int RIGHT_STRIGHT_END_DEGREE   = 100;
 
 
 //left straight calibration
 unsigned int LEFT_STRIGHT_START_DEGREE = 10;
-unsigned int LEFT_STRIGHT_END_DEGREE   = 80;
+unsigned int LEFT_STRIGHT_END_DEGREE   = 100;
 
 
 //right hook calibration
 unsigned int RIGHT_HOOK_START_DEGREE = 10;
-unsigned int RIGHT_HOOK_END_DEGREE   = 75;
+unsigned int RIGHT_HOOK_END_DEGREE   = 85;
 
 
 //left hook calibration
 unsigned int LEFT_HOOK_START_DEGREE = 10;
-unsigned int LEFT_HOOK_END_DEGREE   = 75;
+unsigned int LEFT_HOOK_END_DEGREE   = 85;
 
 
 //joint
@@ -118,7 +118,7 @@ unsigned long shotCount = 0;
 
 //Servo wait
 int pauseMax     = 1000;
-int shotDuration = 310;
+int shotDuration = 410;
 
 // DINSTANCE SR04
 const int trigPin = 5;
@@ -325,8 +325,8 @@ const char index_html[] PROGMEM = R"rawliteral(
     </div>
     <div style="margin-top:30px;">
       <label for="delaySlider">Servo delay (ms):</label>
-      <input type="range" id="delaySlider" min="50" max="600" value="130" oninput="setDelay(this.value)"/>
-      <span id="delayValue" class="slider-value">110</span>
+      <input type="range" id="delaySlider" min="50" max="600" value="410" oninput="setDelay(this.value)"/>
+      <span id="delayValue" class="slider-value">410</span>
     </div>
     <div style="margin-top:20px;">
       <label for="pauseMaxRange">Pause max (ms):</label>
