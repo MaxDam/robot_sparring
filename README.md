@@ -7,7 +7,7 @@ https://www.hackster.io/maxdam75/robot-sparring-79726e
 ### Logo
 <p>
 <img src="./schema/crab_sparring_robot.jpg" width=400>
-<img src="./schema/logocrabsparring.jpg" width=400>
+<img src="./schema/logo-crabsparring-circle.jpg" width=400>
 </p>
 
 ### Schema
