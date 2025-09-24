@@ -12,13 +12,3 @@ https://www.hackster.io/maxdam75/robot-sparring-79726e
 
 ### Schema
 <img src="./schema/schema4.jpg" width=800>
-
-
-
-# Robot Sparring Mini
-
-### Logo
-<img src="./schemaMini/logo-robot-sparring-mini.jpg" width=400>
-
-### Schema
-<img src="./schemaMini/robot-sparring-mini-2.jpg" width=600>
