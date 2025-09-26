@@ -139,7 +139,14 @@
               bodyAngle,headOffset,leftVel,rightVel,leftAcc,rightAcc};
     }
 
+	let lastCheck = 0;
+	const CHECK_INTERVAL = 500;
+
     function drawResults(keypoints){
+	  const now = Date.now();
+	  if (now - lastCheck < CHECK_INTERVAL) return;
+	  lastCheck = now;
+
 	  const ctx = overlay.getContext('2d');
 	  ctx.clearRect(0,0,overlay.width,overlay.height);
 
@@ -179,14 +186,15 @@
 	  // Alert metriche
 	  //if(metrics.leftElbowMetric>1) alerts.push("Gomito sinistro largo");
 	  //if(metrics.rightElbowMetric>1) alerts.push("Gomito destro largo");
-	  if(metrics.leftHandHeight>10) alerts.push("Mano sinistra bassa");
-	  if(metrics.rightHandHeight>10) alerts.push("Mano destra bassa");
+	  if(metrics.leftHandHeight>30) alerts.push("Mano sinistra bassa");
+	  if(metrics.rightHandHeight>30) alerts.push("Mano destra bassa");
 	  //if(metrics.leftKneeAngle<160) alerts.push("Ginocchio sinistro piegato");
 	  //if(metrics.rightKneeAngle<160) alerts.push("Ginocchio destro piegato");
 	  //if(metrics.headOffset<0) alerts.push("Testa bassa!");
 	  //if(Math.abs(metrics.leftAcc)>50) alerts.push("Colpo sinistro frustato");
 	  //if(Math.abs(metrics.rightAcc)>50) alerts.push("Colpo destro frustato");
 	  //if(Math.abs(metrics.bodyAngle)>10) alerts.push("Corpo inclinato");
+
 
 	  document.getElementById('alerts').innerHTML = alerts.join(" | ");
 	}
