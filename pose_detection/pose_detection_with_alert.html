@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MoveNet (browser) - Pose Detection</title>
+  <style>
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      display:flex; flex-direction:column; align-items:center;
+      gap:12px; padding:16px; background:#111; color:#eee;
+    }
+    #videoWrap { 
+      position:relative; 
+      width:1080px; max-width:95vw; 
+    }
+    #video, #overlay {
+      width:100%; height:auto; border-radius:8px; display:block;
+    }
+    #overlay {
+      position:absolute;
+      top:0; left:0;
+      pointer-events:none;
+    }
+    #status { font-size:0.9rem; color:#aaa; }
+  </style>
+</head>
+<body>
+  <div id="videoWrap">
+	  <video id="video" autoplay playsinline muted></video>
+	  <canvas id="overlay"></canvas>
+	</div>
+
+	<div id="status">Avvio...</div>
+	<div id="alerts" style="
+	  margin-top:12px; 
+	  min-height:50px; 
+	  width:95vw; 
+	  max-width:1080px; 
+	  color:#ff4d4d; 
+	  font-size:1.4rem; 
+	  font-weight:bold;
+	"></div>
+
+  <!-- Librerie TF.js e Pose Detection -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection/dist/pose-detection.min.js"></script>
+
+  <script>
+  (async () => {
+    const video   = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const status  = document.getElementById('status');
+
+    const KEYPOINT_NAMES = [
+      "nose","left_eye","right_eye","left_ear","right_ear",
+      "left_shoulder","right_shoulder","left_elbow","right_elbow",
+      "left_wrist","right_wrist","left_hip","right_hip",
+      "left_knee","right_knee","left_ankle","right_ankle"
+    ];
+
+    const SKELETON = [
+      [0,1],[0,2],[1,3],[2,4],
+      [0,5],[0,6],[5,7],[7,9],[6,8],[8,10],
+      [5,6],[11,12],[11,13],[13,15],[12,14],[14,16]
+    ];
+
+    let detector = null;
+    let streaming = false;
+    let latestKeypoints = null;
+    let prevKeypoints = null;
+    let prevVel = null;
+    const frameTime = 1/30;
+
+    const model = poseDetection.SupportedModels.MoveNet;
+    const modelConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
+
+    function resizeCanvasToVideo() {
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+    }
+
+    function kpByName(keypoints,name){
+      return keypoints[KEYPOINT_NAMES.indexOf(name)];
+    }
+
+    function angleBetweenPoints(A,B,C){
+      const AB = {x:B.x-A.x, y:B.y-A.y};
+      const CB = {x:B.x-C.x, y:B.y-C.y};
+      const dot = AB.x*CB.x + AB.y*CB.y;
+      const magAB = Math.hypot(AB.x,AB.y);
+      const magCB = Math.hypot(CB.x,CB.y);
+      return Math.acos(dot/(magAB*magCB))*(180/Math.PI);
+    }
+
+    function analyzePose(kp){
+      const leftElbowMetric = Math.abs(kpByName(kp,"left_elbow").x - kpByName(kp,"left_shoulder").x) /
+                              Math.abs(kpByName(kp,"left_shoulder").x - kpByName(kp,"left_hip").x);
+      const rightElbowMetric = Math.abs(kpByName(kp,"right_elbow").x - kpByName(kp,"right_shoulder").x) /
+                               Math.abs(kpByName(kp,"right_shoulder").x - kpByName(kp,"right_hip").x);
+
+      const leftHandHeight = kpByName(kp,"left_wrist").y - kpByName(kp,"left_shoulder").y;
+      const rightHandHeight= kpByName(kp,"right_wrist").y - kpByName(kp,"right_shoulder").y;
+
+      const leftElbowAngle = angleBetweenPoints(kpByName(kp,"left_shoulder"), kpByName(kp,"left_elbow"), kpByName(kp,"left_wrist"));
+      const rightElbowAngle= angleBetweenPoints(kpByName(kp,"right_shoulder"), kpByName(kp,"right_elbow"), kpByName(kp,"right_wrist"));
+
+      const leftKneeAngle = angleBetweenPoints(kpByName(kp,"left_hip"), kpByName(kp,"left_knee"), kpByName(kp,"left_ankle"));
+      const rightKneeAngle= angleBetweenPoints(kpByName(kp,"right_hip"), kpByName(kp,"right_knee"), kpByName(kp,"right_ankle"));
+
+      const midShoulder = {x:(kpByName(kp,"left_shoulder").x + kpByName(kp,"right_shoulder").x)/2,
+                           y:(kpByName(kp,"left_shoulder").y + kpByName(kp,"right_shoulder").y)/2};
+      const midHip      = {x:(kpByName(kp,"left_hip").x + kpByName(kp,"right_hip").x)/2,
+                           y:(kpByName(kp,"left_hip").y + kpByName(kp,"right_hip").y)/2};
+      const bodyAngle = Math.atan2(midHip.y - midShoulder.y, midHip.x - midShoulder.x)*(180/Math.PI);
+
+      const headOffset = midShoulder.y - kpByName(kp,"nose").y;
+
+      // Velocità e accelerazione polsi
+      let leftVel=0, rightVel=0, leftAcc=0, rightAcc=0;
+      if(prevKeypoints){
+        leftVel = Math.hypot(kpByName(kp,"left_wrist").x - kpByName(prevKeypoints,"left_wrist").x,
+                             kpByName(kp,"left_wrist").y - kpByName(prevKeypoints,"left_wrist").y)/frameTime;
+        rightVel= Math.hypot(kpByName(kp,"right_wrist").x - kpByName(prevKeypoints,"right_wrist").x,
+                             kpByName(kp,"right_wrist").y - kpByName(prevKeypoints,"right_wrist").y)/frameTime;
+
+        if(prevVel){
+          leftAcc  = (leftVel - prevVel.left)/frameTime;
+          rightAcc = (rightVel - prevVel.right)/frameTime;
+        }
+      }
+      prevKeypoints = kp;
+      prevVel = {left:leftVel,right:rightVel};
+
+      return {leftElbowMetric,rightElbowMetric,leftHandHeight,rightHandHeight,
+              leftElbowAngle,rightElbowAngle,leftKneeAngle,rightKneeAngle,
+              bodyAngle,headOffset,leftVel,rightVel,leftAcc,rightAcc};
+    }
+
+    function drawResults(keypoints){
+	  const ctx = overlay.getContext('2d');
+	  ctx.clearRect(0,0,overlay.width,overlay.height);
+
+	  const alerts = [];
+
+	  if(!keypoints){
+		document.getElementById('alerts').innerHTML = '';
+		return;
+	  }
+
+	  const metrics = analyzePose(keypoints);
+
+	  // Scheletro
+	  ctx.lineWidth = 2;
+	  for(const [a,b] of SKELETON){
+		const ka = keypoints[a], kb = keypoints[b];
+		if(ka.score>0.3 && kb.score>0.3){
+		  ctx.beginPath();
+		  ctx.moveTo(ka.x, ka.y);
+		  ctx.lineTo(kb.x, kb.y);
+		  ctx.strokeStyle='rgba(0,255,150,0.9)';
+		  ctx.stroke();
+		}
+	  }
+
+	  // Keypoints
+	  for(let i=0;i<keypoints.length;i++){
+		const k = keypoints[i];
+		if(k.score>0.3){
+		  ctx.beginPath();
+		  ctx.arc(k.x,k.y,5,0,Math.PI*2);
+		  ctx.fillStyle='rgba(255,60,80,0.95)';
+		  ctx.fill();
+		}
+	  }
+
+	  // Alert metriche
+	  //if(metrics.leftElbowMetric>1) alerts.push("Gomito sinistro largo");
+	  //if(metrics.rightElbowMetric>1) alerts.push("Gomito destro largo");
+	  if(metrics.leftHandHeight>10) alerts.push("Mano sinistra bassa");
+	  if(metrics.rightHandHeight>10) alerts.push("Mano destra bassa");
+	  //if(metrics.leftKneeAngle<160) alerts.push("Ginocchio sinistro piegato");
+	  //if(metrics.rightKneeAngle<160) alerts.push("Ginocchio destro piegato");
+	  //if(metrics.headOffset<0) alerts.push("Testa bassa!");
+	  //if(Math.abs(metrics.leftAcc)>50) alerts.push("Colpo sinistro frustato");
+	  //if(Math.abs(metrics.rightAcc)>50) alerts.push("Colpo destro frustato");
+	  //if(Math.abs(metrics.bodyAngle)>10) alerts.push("Corpo inclinato");
+
+	  document.getElementById('alerts').innerHTML = alerts.join(" | ");
+	}
+
+
+    async function initDetector(){
+      status.textContent='Caricamento modello MoveNet...';
+      await tf.setBackend('webgl');
+      detector = await poseDetection.createDetector(model,modelConfig);
+      status.textContent='Modello caricato.';
+    }
+
+    async function startCamera(){
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720},audio:false});
+        video.srcObject=stream;
+        await video.play();
+        resizeCanvasToVideo();
+        streaming=true;
+        status.textContent='Camera attiva — in inferenza...';
+        runDetectionLoop();
+      }catch(e){
+        console.error(e);
+        status.textContent='Errore accesso camera: '+(e.message||e);
+      }
+    }
+
+    async function runDetectionLoop(){
+      if(!streaming) return;
+      if(!detector){ requestAnimationFrame(runDetectionLoop); return; }
+      try{
+        const poses = await detector.estimatePoses(video,{maxPoses:1});
+        if(poses.length>0){
+          latestKeypoints = poses[0].keypoints;
+          drawResults(latestKeypoints);
+          status.textContent='Persona rilevata';
+        }else{
+          latestKeypoints=null;
+          drawResults(null);
+          status.textContent='Nessuna persona rilevata';
+        }
+      }catch(err){
+        console.error('Errore inferenza:',err);
+      }
+      requestAnimationFrame(runDetectionLoop);
+    }
+
+    if(!detector) await initDetector();
+    await startCamera();
+    window.addEventListener('resize',()=>{ if(video.videoWidth) resizeCanvasToVideo(); });
+  })();
+  </script>
+</body>
+</html>

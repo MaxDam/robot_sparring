@@ -1,0 +1,379 @@
+I keypoints più rilevanti per il combattimento:
+Spalle: left_shoulder, right_shoulder
+Gomiti: left_elbow, right_elbow
+Polsi/mani: left_wrist, right_wrist
+Fianchi: left_hip, right_hip
+
+Gomiti troppo lontani (Valori > ~1.0 → gomito troppo lontano dal corpo.):
+function elbowDistanceMetric(kp){
+  // distanza orizzontale gomito-spalla
+  const leftElbowDist = Math.abs(kp.left_elbow.x - kp.left_shoulder.x);
+  const rightElbowDist = Math.abs(kp.right_elbow.x - kp.right_shoulder.x);
+  
+  // normalizza rispetto alla distanza spalla-anca
+  const torsoWidthLeft = Math.abs(kp.left_shoulder.x - kp.left_hip.x);
+  const torsoWidthRight = Math.abs(kp.right_shoulder.x - kp.right_hip.x);
+
+  const leftMetric = leftElbowDist / torsoWidthLeft;
+  const rightMetric = rightElbowDist / torsoWidthRight;
+  
+  return {leftMetric, rightMetric};
+}
+
+Mani troppo basse (Puoi impostare una soglia in pixel o proporzionale all’altezza del torso (spalla - anca).):
+function handsHeightMetric(kp){
+  const leftDiff  = kp.left_wrist.y - kp.left_shoulder.y;
+  const rightDiff = kp.right_wrist.y - kp.right_shoulder.y;
+  
+  return {leftDiff, rightDiff}; // positivo = mano più bassa della spalla
+}
+
+Angolo gomito
+Se vuoi valutare la flessione del braccio (gomito vicino al corpo):
+function elbowAngle(kp, side="left"){
+  const shoulder = side==="left"?kp.left_shoulder:kp.right_shoulder;
+  const elbow    = side==="left"?kp.left_elbow:kp.right_elbow;
+  const wrist    = side==="left"?kp.left_wrist:kp.right_wrist;
+
+  const a = {x: shoulder.x - elbow.x, y: shoulder.y - elbow.y};
+  const b = {x: wrist.x - elbow.x, y: wrist.y - elbow.y};
+
+  const dot = a.x*b.x + a.y*b.y;
+  const magA = Math.hypot(a.x,a.y);
+  const magB = Math.hypot(b.x,b.y);
+
+  const angle = Math.acos(dot / (magA*magB)) * (180/Math.PI);
+  return angle; // 180 = braccio disteso, 90 = piegato a gomito
+}
+
+Gomiti troppo larghi: elbowDistanceMetric > soglia
+Mani basse: handsHeightMetric > soglia
+Braccio troppo disteso: elbowAngle > soglia
+
+
+
+
+
+Hai la posizione del polso e del gomito ad ogni frame:
+latestKeypoints = poses[0].keypoints;
+
+Calcolo della velocità del polso
+let prevKeypoints = null;
+const frameTime = 1/30; // approssimazione: 30 fps
+
+function computeVelocity(kp){
+  if(!prevKeypoints) { prevKeypoints = kp; return {left:0, right:0}; }
+
+  const leftVel  = Math.hypot(kp.left_wrist.x - prevKeypoints.left_wrist.x,
+                              kp.left_wrist.y - prevKeypoints.left_wrist.y) / frameTime;
+  const rightVel = Math.hypot(kp.right_wrist.x - prevKeypoints.right_wrist.x,
+                              kp.right_wrist.y - prevKeypoints.right_wrist.y) / frameTime;
+  
+  prevKeypoints = kp;
+  return {left:leftVel, right:rightVel};
+}
+
+Velocità elevata con accelerazione crescente → colpo “frustato”
+Velocità costante o moderata → colpo “spinto”
+
+
+Accelerazione:
+let prevVel = null;
+
+function computeAcceleration(kp){
+  const vel = computeVelocity(kp);
+  if(!prevVel){ prevVel = vel; return {left:0,right:0}; }
+
+  const leftAcc  = (vel.left - prevVel.left)/frameTime;
+  const rightAcc = (vel.right - prevVel.right)/frameTime;
+
+  prevVel = vel;
+  return {left:leftAcc, right:rightAcc};
+}
+
+Ginocchia piegate o estese:
+function kneeAngle(kp, side="left") {
+  const hip   = side==="left"? kp.left_hip : kp.right_hip;
+  const knee  = side==="left"? kp.left_knee : kp.right_knee;
+  const ankle = side==="left"? kp.left_ankle : kp.right_ankle;
+
+  const a = {x: hip.x - knee.x, y: hip.y - knee.y};
+  const b = {x: ankle.x - knee.x, y: ankle.y - knee.y};
+
+  const dot = a.x*b.x + a.y*b.y;
+  const magA = Math.hypot(a.x,a.y);
+  const magB = Math.hypot(b.x,b.y);
+
+  const angle = Math.acos(dot / (magA*magB)) * (180/Math.PI);
+  return angle; // ~180 = gamba tesa, <160 = piegata
+}
+Soglia consigliata: <160° = ginocchia leggermente piegate, <140° = molto piegate
+
+Allineamento spalle/anca:
+function shoulderHipAlignment(kp) {
+  const midShoulder = {x: (kp.left_shoulder.x + kp.right_shoulder.x)/2,
+                       y: (kp.left_shoulder.y + kp.right_shoulder.y)/2};
+  const midHip      = {x: (kp.left_hip.x + kp.right_hip.x)/2,
+                       y: (kp.left_hip.y + kp.right_hip.y)/2};
+
+  const dx = midHip.x - midShoulder.x;
+  const dy = midHip.y - midShoulder.y;
+
+  const angle = Math.atan2(dy, dx) * (180/Math.PI); // angolo inclinazione corpo
+  return angle; // 0 = verticale, >0 = inclinato
+}
+Usabile per controllare se il pugile non piega il busto lateralmente o non si inclina troppo in avanti.
+
+
+Posizione testa (protezione del mento):
+function headPosition(kp) {
+  const nose = kp.nose;
+  const leftShoulder  = kp.left_shoulder;
+  const rightShoulder = kp.right_shoulder;
+
+  const midShoulderX = (leftShoulder.x + rightShoulder.x)/2;
+  const midShoulderY = (leftShoulder.y + rightShoulder.y)/2;
+
+  const verticalOffset = midShoulderY - nose.y; // positivo = mento protetto (sotto spalla)
+  const horizontalOffset = nose.x - midShoulderX; // deviazioni laterali
+
+  return { verticalOffset, horizontalOffset };
+}
+verticalOffset positivo → testa protetta
+verticalOffset negativo → testa troppo bassa
+Puoi aggiungere soglia ±20px normalizzata all’altezza del torso per alert
+
+
+Puoi creare un unico oggetto di postura completa:
+function analyzePose(kp){
+  return {
+    elbowDistance: elbowDistanceMetric(kp),
+    handsHeight: handsHeightMetric(kp),
+    elbowAngle: {left: elbowAngle(kp,"left"), right: elbowAngle(kp,"right")},
+    kneeAngle: {left: kneeAngle(kp,"left"), right: kneeAngle(kp,"right")},
+    bodyAlignment: shoulderHipAlignment(kp),
+    head: headPosition(kp)
+  };
+}
+analyzePose(latestKeypoints) → restituisce tutte le metriche principali in un unico frame
+Puoi poi visualizzare alert sul canvas o loggare su console
+
+
+
+<script>
+(async () => {
+  const video = document.getElementById('video');
+  const overlay = document.getElementById('overlay');
+  const status = document.getElementById('status');
+
+  const model = poseDetection.SupportedModels.MoveNet;
+  const modelConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
+  let detector = null;
+  let streaming = false;
+  let prevKeypoints = null;
+  let prevVel = null;
+  const frameTime = 1/30; // fps approssimativo
+
+  const KEYPOINT_NAMES = [
+    "nose","left_eye","right_eye","left_ear","right_ear",
+    "left_shoulder","right_shoulder","left_elbow","right_elbow",
+    "left_wrist","right_wrist","left_hip","right_hip",
+    "left_knee","right_knee","left_ankle","right_ankle"
+  ];
+
+  const SKELETON = [
+    [0,1],[0,2],[1,3],[2,4],
+    [0,5],[0,6],[5,7],[7,9],[6,8],[8,10],
+    [5,6],[11,12],[11,13],[13,15],[12,14],[14,16]
+  ];
+
+  function resizeCanvasToVideo() {
+    overlay.width = video.videoWidth;
+    overlay.height = video.videoHeight;
+  }
+
+  // --- Metriche ---
+  function elbowDistanceMetric(kp){
+    const leftElbowDist = Math.abs(kp.left_elbow.x - kp.left_shoulder.x);
+    const rightElbowDist = Math.abs(kp.right_elbow.x - kp.right_shoulder.x);
+    const torsoWidthLeft = Math.abs(kp.left_shoulder.x - kp.left_hip.x);
+    const torsoWidthRight = Math.abs(kp.right_shoulder.x - kp.right_hip.x);
+    return {leftMetric:leftElbowDist/torsoWidthLeft, rightMetric:rightElbowDist/torsoWidthRight};
+  }
+
+  function handsHeightMetric(kp){
+    const leftDiff  = kp.left_wrist.y - kp.left_shoulder.y;
+    const rightDiff = kp.right_wrist.y - kp.right_shoulder.y;
+    return {leftDiff,rightDiff};
+  }
+
+  function elbowAngle(kp, side="left"){
+    const shoulder = side==="left"?kp.left_shoulder:kp.right_shoulder;
+    const elbow    = side==="left"?kp.left_elbow:kp.right_elbow;
+    const wrist    = side==="left"?kp.left_wrist:kp.right_wrist;
+    const a = {x: shoulder.x - elbow.x, y: shoulder.y - elbow.y};
+    const b = {x: wrist.x - elbow.x, y: wrist.y - elbow.y};
+    const dot = a.x*b.x + a.y*b.y;
+    const magA = Math.hypot(a.x,a.y);
+    const magB = Math.hypot(b.x,b.y);
+    return Math.acos(dot/(magA*magB))*(180/Math.PI);
+  }
+
+  function kneeAngle(kp, side="left"){
+    const hip   = side==="left"? kp.left_hip : kp.right_hip;
+    const knee  = side==="left"? kp.left_knee : kp.right_knee;
+    const ankle = side==="left"? kp.left_ankle : kp.right_ankle;
+    const a = {x: hip.x - knee.x, y: hip.y - knee.y};
+    const b = {x: ankle.x - knee.x, y: ankle.y - knee.y};
+    const dot = a.x*b.x + a.y*b.y;
+    const magA = Math.hypot(a.x,a.y);
+    const magB = Math.hypot(b.x,b.y);
+    return Math.acos(dot/(magA*magB))*(180/Math.PI);
+  }
+
+  function shoulderHipAlignment(kp){
+    const midShoulder = {x:(kp.left_shoulder.x+kp.right_shoulder.x)/2, y:(kp.left_shoulder.y+kp.right_shoulder.y)/2};
+    const midHip = {x:(kp.left_hip.x+kp.right_hip.x)/2, y:(kp.left_hip.y+kp.right_hip.y)/2};
+    const dx = midHip.x - midShoulder.x;
+    const dy = midHip.y - midShoulder.y;
+    return Math.atan2(dy, dx)*(180/Math.PI);
+  }
+
+  function headPosition(kp){
+    const nose = kp.nose;
+    const midShoulderX = (kp.left_shoulder.x + kp.right_shoulder.x)/2;
+    const midShoulderY = (kp.left_shoulder.y + kp.right_shoulder.y)/2;
+    const verticalOffset = midShoulderY - nose.y;
+    const horizontalOffset = nose.x - midShoulderX;
+    return {verticalOffset,horizontalOffset};
+  }
+
+  function computeVelocity(kp){
+    if(!prevKeypoints){ prevKeypoints=kp; return {left:0,right:0}; }
+    const leftVel  = Math.hypot(kp.left_wrist.x-prevKeypoints.left_wrist.x, kp.left_wrist.y-prevKeypoints.left_wrist.y)/frameTime;
+    const rightVel = Math.hypot(kp.right_wrist.x-prevKeypoints.right_wrist.x, kp.right_wrist.y-prevKeypoints.right_wrist.y)/frameTime;
+    prevKeypoints=kp;
+    return {left:leftVel,right:rightVel};
+  }
+
+  function computeAcceleration(kp){
+    const vel = computeVelocity(kp);
+    if(!prevVel){ prevVel=vel; return {left:0,right:0}; }
+    const leftAcc  = (vel.left - prevVel.left)/frameTime;
+    const rightAcc = (vel.right - prevVel.right)/frameTime;
+    prevVel=vel;
+    return {left:leftAcc,right:rightAcc};
+  }
+
+  function analyzePose(kp){
+    return {
+      elbowDistance: elbowDistanceMetric(kp),
+      handsHeight: handsHeightMetric(kp),
+      elbowAngle: {left: elbowAngle(kp,"left"), right: elbowAngle(kp,"right")},
+      kneeAngle: {left: kneeAngle(kp,"left"), right: kneeAngle(kp,"right")},
+      bodyAlignment: shoulderHipAlignment(kp),
+      head: headPosition(kp),
+      velocity: computeVelocity(kp),
+      acceleration: computeAcceleration(kp)
+    };
+  }
+
+  // --- Disegna overlay con alert ---
+  function drawResults(kp){
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0,0,overlay.width,overlay.height);
+    if(!kp) return;
+    ctx.lineWidth = 2;
+
+    const metrics = analyzePose(kp);
+
+    // Skeleton
+    for(const [a,b] of SKELETON){
+      const ka=kp[a], kb=kp[b];
+      if(ka.score>0.3 && kb.score>0.3){
+        ctx.beginPath();
+        ctx.moveTo(ka.x, ka.y);
+        ctx.lineTo(kb.x, kb.y);
+        ctx.strokeStyle='rgba(0,255,150,0.9)';
+        ctx.stroke();
+      }
+    }
+
+    // Keypoints
+    for(let i=0;i<kp.length;i++){
+      const k = kp[i];
+      if(k.score>=0.3){
+        ctx.beginPath();
+        ctx.fillStyle='rgba(255,60,80,0.95)';
+        ctx.arc(k.x,k.y,5,0,Math.PI*2);
+        ctx.fill();
+        ctx.font="12px Arial";
+        ctx.fillStyle="white";
+        ctx.fillText(KEYPOINT_NAMES[i], k.x+6, k.y-6);
+      }
+    }
+
+    // --- Alert visivi ---
+    // Gomiti larghi
+    if(metrics.elbowDistance.leftMetric>1) ctx.fillText("Gomito sinistro largo", kp.left_elbow.x+10, kp.left_elbow.y-10);
+    if(metrics.elbowDistance.rightMetric>1) ctx.fillText("Gomito destro largo", kp.right_elbow.x+10, kp.right_elbow.y-10);
+
+    // Mani basse
+    if(metrics.handsHeight.leftDiff>50) ctx.fillText("Mano sinistra bassa", kp.left_wrist.x+10, kp.left_wrist.y-10);
+    if(metrics.handsHeight.rightDiff>50) ctx.fillText("Mano destra bassa", kp.right_wrist.x+10, kp.right_wrist.y-10);
+
+    // Ginocchia piegate
+    if(metrics.kneeAngle.left<160) ctx.fillText("Ginocchio sinistro piegato", kp.left_knee.x+10, kp.left_knee.y-10);
+    if(metrics.kneeAngle.right<160) ctx.fillText("Ginocchio destro piegato", kp.right_knee.x+10, kp.right_knee.y-10);
+
+    // Testa bassa
+    if(metrics.head.verticalOffset<0) ctx.fillText("Testa bassa!", kp.nose.x+10, kp.nose.y-10);
+
+    // Colpi frustati (alta accelerazione)
+    if(Math.abs(metrics.acceleration.left)>50) ctx.fillText("Colpo sinistro frustato", kp.left_wrist.x+10, kp.left_wrist.y-20);
+    if(Math.abs(metrics.acceleration.right)>50) ctx.fillText("Colpo destro frustato", kp.right_wrist.x+10, kp.right_wrist.y-20);
+
+    // Allineamento corpo
+    if(Math.abs(metrics.bodyAlignment)>10) ctx.fillText("Corpo inclinato", (kp.left_hip.x+kp.right_hip.x)/2, (kp.left_hip.y+kp.right_hip.y)/2);
+  }
+
+  // --- Inizializza modello e camera ---
+  async function initDetector(){
+    status.textContent='Caricamento modello MoveNet...';
+    await tf.setBackend('webgl');
+    detector = await poseDetection.createDetector(model, modelConfig);
+    status.textContent='Modello caricato.';
+  }
+
+  async function startCamera(){
+    try{
+      const stream = await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720},audio:false});
+      video.srcObject = stream;
+      await video.play();
+      resizeCanvasToVideo();
+      streaming=true;
+      status.textContent='Camera attiva — in inferenza...';
+      runDetectionLoop();
+    }catch(e){ console.error(e); status.textContent='Errore camera: '+(e.message||e);}
+  }
+
+  async function runDetectionLoop(){
+    if(!streaming) return;
+    if(!detector){ requestAnimationFrame(runDetectionLoop); return; }
+    try{
+      const poses = await detector.estimatePoses(video, { maxPoses: 1 });
+      if(poses.length>0){
+        drawResults(poses[0].keypoints);
+      }else{
+        drawResults(null);
+      }
+    }catch(err){ console.error('Errore inferenza:',err);}
+    requestAnimationFrame(runDetectionLoop);
+  }
+
+  if(!detector) await initDetector();
+  await startCamera();
+  window.addEventListener('resize',()=>{ if(video.videoWidth) resizeCanvasToVideo(); });
+})();
+</script>
+
