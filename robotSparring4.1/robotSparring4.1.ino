@@ -92,8 +92,10 @@ unsigned int LEFT_HOOK_END_DEGREE   = 120;
 #define QUADRUPLE_SHOT  5
 #define STRAIGHT_ONLY   6
 #define HOOK_ONLY       7
-#define FIX_COMBO_2_3   8
-#define FIX_COMBO_1_2_3 9
+#define FIX_COMBO_1_2   8
+#define FIX_COMBO_2_3   9
+#define FIX_COMBO_1_2_3 10
+#define FIX_COMBO_3_4   11
 
 unsigned int level = START;
 
@@ -106,9 +108,10 @@ unsigned int level = START;
 #define QUADRUPLE_ACTION   4
 #define STRAIGHT_ACTION    5
 #define HOOK_ACTION        6
-#define COMBO_2_3_ACTION   7
-#define COMBO_1_2_3_ACTION 8
-
+#define COMBO_1_2_ACTION   7
+#define COMBO_2_3_ACTION   8
+#define COMBO_1_2_3_ACTION 9
+#define COMBO_3_4_ACTION   10
 
 //speed (shot speed)
 #define SLOW            0
@@ -309,8 +312,10 @@ const char index_html[] PROGMEM = R"rawliteral(
       <option value="5">Quadruple shot</option>
 			<option value="6">Straight only</option>
 			<option value="7">Hook only</option>
-			<option value="8">Fix combo 2-3</option>
-			<option value="9">Fix combo 1-2-3</option>
+			<option value="8">Fix combo 1-2</option>
+			<option value="9">Fix combo 2-3</option>
+			<option value="10">Fix combo 1-2-3</option>
+			<option value="11">Fix combo 3-4</option>
     </select>
     <label for="speedSelect">Speed:</label>
     <select id="speedSelect">
@@ -1052,12 +1057,20 @@ int getActionFromState() {
 			action = HOOK_ACTION;
 			break;
 		}
+		case FIX_COMBO_1_2: {
+			action = COMBO_1_2_ACTION;
+			break;
+		}
 		case FIX_COMBO_2_3: {
 			action = COMBO_2_3_ACTION;
 			break;
 		}
 		case FIX_COMBO_1_2_3: {
 			action = COMBO_1_2_3_ACTION;
+			break;
+		}
+		case FIX_COMBO_3_4: {
+			action = COMBO_3_4_ACTION;
 			break;
 		}
 	}
@@ -1172,12 +1185,20 @@ void executeAction(int action)  {
   		}
 			break;
 		}
+		case COMBO_1_2_ACTION: { //fix combo
+			shot_1_2();
+			break;
+		}
 		case COMBO_2_3_ACTION: { //fix combo
 			shot_2_3();
 			break;
 		}
 		case COMBO_1_2_3_ACTION: { //fix combo
 			shot_1_2_3();
+			break;
+		}
+		case COMBO_3_4_ACTION: { //fix combo
+			shot_3_4();
 			break;
 		}
 	  default: {
