@@ -495,21 +495,27 @@ void accessPointInit() {
   dnsServer.start(DNS_PORT, "*", myIP);
 }
 
+int angleFromPercent(int startDeg, int endDeg, float percent) {
+  if (percent < 0)   percent = 0;
+  if (percent > 100) percent = 100;
+	float angle = startDeg + (endDeg - startDeg) * (percent / 100.0);
+	return round(angle);
+}
+
 //basic shots
 
-unsigned int ELBOW_LEFT_START_DEGREE 					= 140;
-unsigned int ELBOW_LEFT_END_DEGREE   				  = 15;
-unsigned int SHOULDER_FRONT_LEFT_START_DEGREE = 90;
-
-unsigned int ELBOW_RIGHT_START_DEGREE 				 = 140;
-unsigned int ELBOW_RIGHT_END_DEGREE   				 = 15;
-unsigned int SHOULDER_FRONT_RIGHT_START_DEGREE = 90;
-
+unsigned int ELBOW_LEFT_START_DEGREE 					     = 140;
+unsigned int ELBOW_LEFT_END_DEGREE   				       = 15;
+unsigned int SHOULDER_FRONT_LEFT_START_DEGREE      = 90;
 unsigned int SHOULDER_FRONT_LEFT_END_DEGREE        = 10;
 unsigned int SHOULDER_ROTATION_LEFT_START_DEGREE   = 80;
 unsigned int SHOULDER_ROTATION_LEFT_END_DEGREE_CW  = 20;
 unsigned int SHOULDER_ROTATION_LEFT_END_DEGREE_CCW = 140;
 
+
+unsigned int ELBOW_RIGHT_START_DEGREE 				      = 140;
+unsigned int ELBOW_RIGHT_END_DEGREE   				      = 15;
+unsigned int SHOULDER_FRONT_RIGHT_START_DEGREE      = 90;
 unsigned int SHOULDER_FRONT_RIGHT_END_DEGREE        = 10;
 unsigned int SHOULDER_ROTATION_RIGHT_START_DEGREE   = 80;
 unsigned int SHOULDER_ROTATION_RIGHT_END_DEGREE_CW  = 20;
@@ -554,60 +560,58 @@ void straightRight() {
 
 void hookLeft() {
 	startPositionLeft();
-  writeAngle(ELBOW_LEFT, ELBOW_LEFT_END_DEGREE);
-	delay(120);
-	writeAngle(SHOULDER_FRONT_LEFT, SHOULDER_FRONT_LEFT_END_DEGREE);
+	writeAngle(ELBOW_LEFT, angleFromPercent(ELBOW_LEFT_START_DEGREE, ELBOW_LEFT_END_DEGREE, 70));
 	writeAngle(SHOULDER_ROTATION_LEFT, SHOULDER_ROTATION_LEFT_END_DEGREE_CCW);
+	delay(300);
+	writeAngle(SHOULDER_FRONT_LEFT, SHOULDER_FRONT_LEFT_END_DEGREE);
 	delay(shotDuration);
 	startPositionLeft();
 }
 
 void hookRight() {
 	startPositionRight();
-  writeAngle(ELBOW_RIGHT, ELBOW_RIGHT_END_DEGREE);
-	delay(120);
-	writeAngle(SHOULDER_FRONT_RIGHT, SHOULDER_FRONT_RIGHT_END_DEGREE);
+	writeAngle(ELBOW_RIGHT, angleFromPercent(ELBOW_RIGHT_START_DEGREE, ELBOW_RIGHT_END_DEGREE, 70));
 	writeAngle(SHOULDER_ROTATION_RIGHT, SHOULDER_ROTATION_RIGHT_END_DEGREE_CW);
+	delay(300);
+	writeAngle(SHOULDER_FRONT_RIGHT, SHOULDER_FRONT_RIGHT_END_DEGREE);
 	delay(shotDuration);
 	startPositionRight();
 }
 
 void uppercutLeft() {
 	startPositionLeft();
-  writeAngle(ELBOW_LEFT, ELBOW_LEFT_END_DEGREE);
-	delay(120);
-	writeAngle(SHOULDER_FRONT_LEFT, SHOULDER_FRONT_LEFT_END_DEGREE);
-	writeAngle(SHOULDER_ROTATION_LEFT, SHOULDER_ROTATION_LEFT_END_DEGREE_CCW);
+	writeAngle(ELBOW_LEFT, angleFromPercent(ELBOW_LEFT_START_DEGREE, ELBOW_LEFT_END_DEGREE, 55));
+	delay(300);
+	writeAngle(SHOULDER_FRONT_LEFT, angleFromPercent(SHOULDER_FRONT_LEFT_START_DEGREE, SHOULDER_FRONT_LEFT_END_DEGREE, 70));
 	delay(shotDuration);
 	startPositionLeft();
 }
 
 void uppercutRight() {
 	startPositionRight();
-  writeAngle(ELBOW_RIGHT, ELBOW_RIGHT_END_DEGREE);
-	delay(120);
-	writeAngle(SHOULDER_FRONT_RIGHT, SHOULDER_FRONT_RIGHT_END_DEGREE);
-	writeAngle(SHOULDER_ROTATION_RIGHT, SHOULDER_ROTATION_RIGHT_END_DEGREE_CW);
+	writeAngle(ELBOW_RIGHT, angleFromPercent(ELBOW_RIGHT_START_DEGREE, ELBOW_RIGHT_END_DEGREE, 55));
+	delay(300);
+	writeAngle(SHOULDER_FRONT_RIGHT, angleFromPercent(SHOULDER_FRONT_RIGHT_START_DEGREE, SHOULDER_FRONT_RIGHT_END_DEGREE, 70));
 	delay(shotDuration);
 	startPositionRight();
 }
 
 void uppercutToBodyLeft() {
 	startPositionLeft();
-  writeAngle(ELBOW_LEFT, ELBOW_LEFT_END_DEGREE);
-	delay(120);
-	writeAngle(SHOULDER_FRONT_LEFT, SHOULDER_FRONT_LEFT_END_DEGREE);
-	writeAngle(SHOULDER_ROTATION_LEFT, SHOULDER_ROTATION_LEFT_START_DEGREE);
+	writeAngle(ELBOW_LEFT, angleFromPercent(ELBOW_LEFT_START_DEGREE, ELBOW_LEFT_END_DEGREE, 65));
+	writeAngle(SHOULDER_ROTATION_LEFT, angleFromPercent(SHOULDER_ROTATION_LEFT_START_DEGREE, SHOULDER_ROTATION_LEFT_END_DEGREE_CCW, 15));
+	delay(300);
+	writeAngle(SHOULDER_FRONT_LEFT, angleFromPercent(SHOULDER_FRONT_LEFT_START_DEGREE, SHOULDER_FRONT_LEFT_END_DEGREE, 50));
 	delay(shotDuration);
 	startPositionLeft();
 }
 
 void uppercutToBodyRight() {
 	startPositionRight();
-  writeAngle(ELBOW_RIGHT, ELBOW_RIGHT_END_DEGREE);
-	delay(120);
-	writeAngle(SHOULDER_FRONT_RIGHT, SHOULDER_FRONT_RIGHT_END_DEGREE);
-	writeAngle(SHOULDER_ROTATION_RIGHT, SHOULDER_ROTATION_LEFT_START_DEGREE);
+	writeAngle(ELBOW_RIGHT, angleFromPercent(ELBOW_RIGHT_START_DEGREE, ELBOW_RIGHT_END_DEGREE, 65));
+	writeAngle(SHOULDER_ROTATION_RIGHT, angleFromPercent(SHOULDER_ROTATION_RIGHT_START_DEGREE, SHOULDER_ROTATION_RIGHT_END_DEGREE_CW, 15));
+	delay(300);
+	writeAngle(SHOULDER_FRONT_RIGHT, angleFromPercent(SHOULDER_FRONT_RIGHT_START_DEGREE, SHOULDER_FRONT_RIGHT_END_DEGREE, 50));
 	delay(shotDuration);
 	startPositionRight();
 }
@@ -1034,7 +1038,7 @@ int getRandomWaitTime() {
         return pauseMax * 5;
       }
       default: {
-        return shotDuration;
+        return 10;
       }
   }
 }
