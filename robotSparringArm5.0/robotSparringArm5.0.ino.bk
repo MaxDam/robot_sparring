@@ -94,6 +94,20 @@ static const float SERVO_FREQ_HZ = 50.0f;
 unsigned int level = START;
 
 
+//actions (type of shot)
+#define NO_ACTION       	 0
+#define SINGLE_ACTION      1
+#define DOUBLE_ACTION      2
+#define TRIPLE_ACTION      3
+#define QUADRUPLE_ACTION   4
+#define STRAIGHT_ACTION    5
+#define HOOK_ACTION        6
+#define COMBO_1_2_ACTION   7
+#define COMBO_2_3_ACTION   8
+#define COMBO_1_2_3_ACTION 9
+#define COMBO_3_4_ACTION   10
+
+
 //speed (shot speed)
 #define SLOW            0
 #define FAST            1
@@ -481,8 +495,14 @@ void accessPointInit() {
   dnsServer.start(DNS_PORT, "*", myIP);
 }
 
+int angleFromPercent(int startDeg, int endDeg, float percent) {
+  if (percent < 0)   percent = 0;
+  if (percent > 100) percent = 100;
+	float angle = startDeg + (endDeg - startDeg) * (percent / 100.0);
+	return round(angle);
+}
 
-// Basic shots
+//basic shots
 
 unsigned int ELBOW_LEFT_START_DEGREE 					     = 140;
 unsigned int ELBOW_LEFT_END_DEGREE   				       = 15;
@@ -518,372 +538,464 @@ void startPosition() {
 	startPositionRight();
 }
 
-int angleFromPercent(int startDeg, int endDeg, float percent) {
-  if (percent < 0)   percent = 0;
-  if (percent > 100) percent = 100;
-	float angle = startDeg + (endDeg - startDeg) * (percent / 100.0);
-	return round(angle);
-}
-
-// diretto sinistro
-void straightLeft(const char* prossimoColpo = nullptr) {
+void straightLeft() {
 	startPositionLeft();
   writeAngle(ELBOW_LEFT, ELBOW_LEFT_END_DEGREE);
 	delay(120);
 	writeAngle(SHOULDER_FRONT_LEFT, SHOULDER_FRONT_LEFT_END_DEGREE);
 	writeAngle(SHOULDER_ROTATION_LEFT, SHOULDER_ROTATION_LEFT_END_DEGREE_CCW);
 	delay(shotDuration);
-	
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "1") == 0) {
-      // prossimoColpo = diretto sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "3") == 0) {
-      // prossimoColpo = gancio sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5") == 0) {
-      // prossimoColpo = montante sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5b") == 0) {
-      // prossimoColpo = montante sinistro al corpo
-      startPositionLeft();
-			return;
-    }
-  }
 	startPositionLeft();
 }
 
-// diretto destro
-void straightRight(const char* prossimoColpo = nullptr) {
+void straightRight() {
 	startPositionRight();
   writeAngle(ELBOW_RIGHT, ELBOW_RIGHT_END_DEGREE);
 	delay(120);
 	writeAngle(SHOULDER_FRONT_RIGHT, SHOULDER_FRONT_RIGHT_END_DEGREE);
 	writeAngle(SHOULDER_ROTATION_RIGHT, SHOULDER_ROTATION_RIGHT_END_DEGREE_CW);
 	delay(shotDuration);
-
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "2") == 0) {
-      // prossimoColpo = diretto destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "4") == 0) {
-      // prossimoColpo = gancio destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6") == 0) {
-      // prossimoColpo = montante destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6b") == 0) {
-      // prossimoColpo = montante destro al corpo
-      startPositionRight();
-			return;
-    }
-  }
 	startPositionRight();
 }
 
-// gancio sinistro
-void hookLeft(const char* prossimoColpo = nullptr) {
+void hookLeft() {
 	startPositionLeft();
 	writeAngle(ELBOW_LEFT, angleFromPercent(ELBOW_LEFT_START_DEGREE, ELBOW_LEFT_END_DEGREE, 70));
 	writeAngle(SHOULDER_ROTATION_LEFT, SHOULDER_ROTATION_LEFT_END_DEGREE_CCW);
 	delay(300);
 	writeAngle(SHOULDER_FRONT_LEFT, SHOULDER_FRONT_LEFT_END_DEGREE);
 	delay(shotDuration);
-
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "1") == 0) {
-      // prossimoColpo = diretto sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "3") == 0) {
-      // prossimoColpo = gancio sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5") == 0) {
-      // prossimoColpo = montante sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5b") == 0) {
-      // prossimoColpo = montante sinistro al corpo
-      startPositionLeft();
-			return;
-    }
-  }
 	startPositionLeft();
 }
 
-// gencio destro
-void hookRight(const char* prossimoColpo = nullptr) {
+void hookRight() {
 	startPositionRight();
 	writeAngle(ELBOW_RIGHT, angleFromPercent(ELBOW_RIGHT_START_DEGREE, ELBOW_RIGHT_END_DEGREE, 70));
 	writeAngle(SHOULDER_ROTATION_RIGHT, SHOULDER_ROTATION_RIGHT_END_DEGREE_CW);
 	delay(300);
 	writeAngle(SHOULDER_FRONT_RIGHT, SHOULDER_FRONT_RIGHT_END_DEGREE);
 	delay(shotDuration);
-	
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "2") == 0) {
-      // prossimoColpo = diretto destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "4") == 0) {
-      // prossimoColpo = gancio destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6") == 0) {
-      // prossimoColpo = montante destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6b") == 0) {
-      // prossimoColpo = montante destro al corpo
-      startPositionRight();
-			return;
-    }
-  }
 	startPositionRight();
 }
 
-// montante sinistro
-void uppercutLeft(const char* prossimoColpo = nullptr) {
+void uppercutLeft() {
 	startPositionLeft();
 	writeAngle(ELBOW_LEFT, angleFromPercent(ELBOW_LEFT_START_DEGREE, ELBOW_LEFT_END_DEGREE, 55));
 	delay(300);
 	writeAngle(SHOULDER_FRONT_LEFT, angleFromPercent(SHOULDER_FRONT_LEFT_START_DEGREE, SHOULDER_FRONT_LEFT_END_DEGREE, 70));
 	delay(shotDuration);
-	
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "1") == 0) {
-      // prossimoColpo = diretto sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "3") == 0) {
-      // prossimoColpo = gancio sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5") == 0) {
-      // prossimoColpo = montante sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5b") == 0) {
-      // prossimoColpo = montante sinistro al corpo
-      startPositionLeft();
-			return;
-    }
-  }
 	startPositionLeft();
 }
 
-// montante destro
-void uppercutRight(const char* prossimoColpo = nullptr) {
+void uppercutRight() {
 	startPositionRight();
 	writeAngle(ELBOW_RIGHT, angleFromPercent(ELBOW_RIGHT_START_DEGREE, ELBOW_RIGHT_END_DEGREE, 55));
 	delay(300);
 	writeAngle(SHOULDER_FRONT_RIGHT, angleFromPercent(SHOULDER_FRONT_RIGHT_START_DEGREE, SHOULDER_FRONT_RIGHT_END_DEGREE, 70));
 	delay(shotDuration);
-	
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "2") == 0) {
-      // prossimoColpo = diretto destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "4") == 0) {
-      // prossimoColpo = gancio destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6") == 0) {
-      // prossimoColpo = montante destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6b") == 0) {
-      // prossimoColpo = montante destro al corpo
-      startPositionRight();
-			return;
-    }
-  }
 	startPositionRight();
 }
 
-// montante sinistro al corpo
-void uppercutToBodyLeft(const char* prossimoColpo = nullptr) {
+void uppercutToBodyLeft() {
 	startPositionLeft();
 	writeAngle(ELBOW_LEFT, angleFromPercent(ELBOW_LEFT_START_DEGREE, ELBOW_LEFT_END_DEGREE, 65));
 	writeAngle(SHOULDER_ROTATION_LEFT, angleFromPercent(SHOULDER_ROTATION_LEFT_START_DEGREE, SHOULDER_ROTATION_LEFT_END_DEGREE_CCW, 15));
 	delay(300);
 	writeAngle(SHOULDER_FRONT_LEFT, angleFromPercent(SHOULDER_FRONT_LEFT_START_DEGREE, SHOULDER_FRONT_LEFT_END_DEGREE, 50));
 	delay(shotDuration);
-	
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "1") == 0) {
-      // prossimoColpo = diretto sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "3") == 0) {
-      // prossimoColpo = gancio sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5") == 0) {
-      // prossimoColpo = montante sinistro
-      startPositionLeft();
-			return;
-    } else if (strcmp(prossimoColpo, "5b") == 0) {
-      // prossimoColpo = montante sinistro al corpo
-      startPositionLeft();
-			return;
-    }
-  }
 	startPositionLeft();
 }
 
-// montante destro al corpo
-void uppercutToBodyRight(const char* prossimoColpo = nullptr) {
+void uppercutToBodyRight() {
 	startPositionRight();
 	writeAngle(ELBOW_RIGHT, angleFromPercent(ELBOW_RIGHT_START_DEGREE, ELBOW_RIGHT_END_DEGREE, 65));
 	writeAngle(SHOULDER_ROTATION_RIGHT, angleFromPercent(SHOULDER_ROTATION_RIGHT_START_DEGREE, SHOULDER_ROTATION_RIGHT_END_DEGREE_CW, 15));
 	delay(300);
 	writeAngle(SHOULDER_FRONT_RIGHT, angleFromPercent(SHOULDER_FRONT_RIGHT_START_DEGREE, SHOULDER_FRONT_RIGHT_END_DEGREE, 50));
 	delay(shotDuration);
-	
-	// decide il rientro in base al prossimo colpo
-  if (prossimoColpo != nullptr) {
-    if (strcmp(prossimoColpo, "2") == 0) {
-      // prossimoColpo = diretto destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "4") == 0) {
-      // prossimoColpo = gancio destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6") == 0) {
-      // prossimoColpo = montante destro
-      startPositionRight();
-			return;
-    } else if (strcmp(prossimoColpo, "6b") == 0) {
-      // prossimoColpo = montante destro al corpo
-      startPositionRight();
-			return;
-    }
-  }
 	startPositionRight();
 }
 
 
-// Shot combinations
+//shot combinations
 
-const char* combo2[] = {
-  "1-2",   //jab → diretto
-	"1-3",   //jab → gancio sinistro
-	"1-4",   //jab → gancio destro
-	"1-5",   //jab → montante sinistro
-	"1-6",   //jab → montante destro
-	"1-5b",  //jab → corpo sinistro
-	"1-6b",  //jab → corpo destro
-	"2-5b",  //diretto → corpo sinistro
-	"2-6b",  //diretto → corpo destro
-	"3-2",   //gancio sinistro → diretto
-	"3-6",   //gancio sinistro → montante destro
-	"4-5"    //gancio destro → montante sinistro
-};
-
-const char* combo3[] = {
-  "1-2-3",   //jab → diretto → gancio sinistro
-	"1-3-2",   //jab → gancio sinistro → diretto
-	"1-2-4",   //jab → diretto → gancio destro
-	"1-3-6",   //jab → gancio sinistro → montante destro
-	"1-2-1",   //doppio jab → diretto
-	"2-1-2",   //diretto → jab → diretto
-	"1-2-6b",  //jab → diretto → corpo sinistro
-	"1-5b-6b", //jab → corpo sinistro → corpo destro
-	"2-6b-5b"  //diretto → corpo destro → corpo sinistro
-};
-
-const char* combo4[] = {
-  "1-2-3-2", //jab → diretto → gancio sinistro → diretto
-	"1-2-3-6", //jab → diretto → gancio sinistro → montante destro
-	"1-3-2-6", //jab → gancio sinistro → diretto → montante destro
-	"1-2-1-2", //doppio jab → diretto → diretto
-	"1-3-2-4"  //jab → gancio sinistro → diretto → gancio destro
-};
-
-const char* combo5[] = {
-  "1-2-5b-3-6", //jab → diretto → corpo sinistro → gancio sinistro → montante destro
-	"1-6b-2-3-6"  //jab → corpo destro → diretto → gancio sinistro → montante destro
-};
-
-int split(const String& input, char delimiter, String tokens[], int maxTokens) {
-  int count = 0;
-  int start = 0;
-
-  while (count < maxTokens) {
-    int idx = input.indexOf(delimiter, start);
-
-    if (idx == -1) {
-      tokens[count++] = input.substring(start);
-      break;
-    }
-
-    tokens[count++] = input.substring(start, idx);
-    start = idx + 1;
-  }
-
-  return count;
+void shot_1() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+	} else {
+		straightRight();
+	}
 }
 
-void eseguiColpo(const char* colpo, const char* prossimoColpo = nullptr) {
-  if      (strcmp(colpo, "1")  == 0) (!stanceIsSouthpaw ? straightLeft(prossimoColpo)        : straightRight(prossimoColpo));
-  else if (strcmp(colpo, "2")  == 0) (!stanceIsSouthpaw ? straightRight(prossimoColpo)       : straightLeft(prossimoColpo));
-  else if (strcmp(colpo, "3")  == 0) (!stanceIsSouthpaw ? hookLeft(prossimoColpo)            : hookRight(prossimoColpo));
-  else if (strcmp(colpo, "4")  == 0) (!stanceIsSouthpaw ? hookRight(prossimoColpo)           : hookLeft(prossimoColpo));
-  else if (strcmp(colpo, "5")  == 0) (!stanceIsSouthpaw ? uppercutLeft(prossimoColpo)        : uppercutRight(prossimoColpo));
-  else if (strcmp(colpo, "6")  == 0) (!stanceIsSouthpaw ? uppercutRight(prossimoColpo)       : uppercutLeft(prossimoColpo));
-  else if (strcmp(colpo, "5b") == 0) (!stanceIsSouthpaw ? uppercutToBodyLeft(prossimoColpo)  : uppercutToBodyRight(prossimoColpo));
-  else if (strcmp(colpo, "6b") == 0) (!stanceIsSouthpaw ? uppercutToBodyRight(prossimoColpo) : uppercutToBodyLeft(prossimoColpo));
+void shot_2() {
+	if(!stanceIsSouthpaw) {
+		straightRight();
+	} else {
+		straightLeft();
+	}
 }
 
-void eseguiCombo(const String& combo) {
-  const int MAX_COLPI = 10; // numero massimo di colpi nella combo
-  String colpi[MAX_COLPI];
-
-  int n = split(combo, '-', colpi, MAX_COLPI);
-
-  for (int i = 0; i < n; i++) {
-    const char* colpoAttuale = colpi[i].c_str();
-    const char* prossimoColpo = (i < n - 1) ? colpi[i + 1].c_str() : nullptr;
-
-    eseguiColpo(colpoAttuale, prossimoColpo);
-  }
+void shot_3() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+	} else {
+		hookRight();
+	}
 }
 
-// non usata per ora
-void comboRandom() {
-  const char** gruppi[] = { combo2, combo3, combo4, combo5 };
-  const int dimensioni[] = {
-    sizeof(combo2) / sizeof(combo2[0]),
-    sizeof(combo3) / sizeof(combo3[0]),
-    sizeof(combo4) / sizeof(combo4[0]),
-		sizeof(combo5) / sizeof(combo5[0])
-  };
-
-  int tipo = random(4);  // 0=>2 colpi, 1=>3 colpi, 2=>4 colpi, 3=>5 colpi
-  int indice = random(dimensioni[tipo]);
-
-  eseguiCombo(gruppi[tipo][indice]);
+void shot_4() {
+	if(!stanceIsSouthpaw) {
+		hookRight();
+	} else {
+		hookLeft();
+	}
 }
 
+void shot_1_2() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+	}
+}
 
-// Main functions
+void shot_2_3() {
+	if(!stanceIsSouthpaw) {
+		straightRight();
+		hookLeft();
+	} else {
+		straightLeft();
+		hookRight();
+	}
+}
+
+void shot_1_1() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		delay(shotDuration);
+		straightLeft();
+	} else {
+		straightRight();
+		delay(shotDuration);
+		straightRight();
+	}
+}
+
+void shot_2_2() {
+	if(!stanceIsSouthpaw) {
+		straightRight();
+		delay(shotDuration);
+		straightRight();
+	} else {
+		straightLeft();
+		delay(shotDuration);
+		straightLeft();
+	}
+}
+
+void shot_3_2() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		straightRight();
+	} else {
+		hookRight();
+		straightLeft();
+	}
+}
+
+void shot_1_3() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		hookLeft();
+	} else {
+		straightRight();
+		hookRight();
+	}
+}
+
+void shot_3_3() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		delay(shotDuration);
+		hookLeft();
+	} else {
+		hookRight();
+		delay(shotDuration);
+		hookRight();
+	}
+}
+
+void shot_4_4() {
+	if(!stanceIsSouthpaw) {
+		hookRight();
+		delay(shotDuration);
+		hookRight();
+	} else {
+		hookLeft();
+		delay(shotDuration);
+		hookLeft();
+	}
+}
+
+void shot_3_4() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+	} else {
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+	}
+}
+
+void shot_1_2_3() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+		hookLeft();
+	} else {
+		straightRight();
+		straightLeft();
+		hookRight();
+	}
+}
+
+void shot_2_3_2() {
+	if(!stanceIsSouthpaw) {
+		straightRight();
+		hookLeft();
+		straightRight();
+	} else {
+		straightLeft();
+		hookRight();
+		straightLeft();
+	}
+}
+
+void shot_1_3_1() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		hookLeft();
+		straightLeft();
+	} else {
+		straightRight();
+		hookRight();
+		straightRight();
+	}
+}
+
+void shot_1_2_2() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+		delay(shotDuration);
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+		delay(shotDuration);
+		straightLeft();
+	}
+}
+
+void shot_1_1_2() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		delay(shotDuration);
+		straightLeft();
+		straightRight();
+	} else {
+		straightRight();
+		delay(shotDuration);
+		straightRight();
+		straightLeft();
+	}
+}
+
+void shot_1_2_1() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+		straightLeft();
+	} else {
+		straightRight();
+		straightLeft();
+		straightRight();
+	}
+}
+
+void shot_1_4_3() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+	} else {
+		straightRight();
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+	}
+}
+
+void shot_3_4_2() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+		straightRight();
+	} else {
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+		straightLeft();
+	}
+}
+
+void shot_3_4_3() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+	} else {
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+	}
+}
+
+void shot_3_1_3() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		straightLeft();
+		hookLeft();
+	} else {
+		hookRight();
+		straightRight();
+		hookRight();
+	}
+}
+
+void shot_1_2_3_4() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+	} else {
+		straightRight();
+		straightLeft();
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+	}
+}
+
+void shot_1_2_1_2() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+		straightLeft();
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+		straightRight();
+		straightLeft();
+	}
+}
+
+void shot_1_2_3_2() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+		hookLeft();
+		straightRight();
+	} else {
+		straightRight();
+		straightLeft();
+		hookRight();
+		straightLeft();
+	}
+}
+
+void shot_3_4_2_1() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+		straightRight();
+		straightLeft();
+	} else {
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+		straightLeft();
+		straightRight();
+	}
+}
+
+void shot_3_4_3_2() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+		straightRight();
+	} else {
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+		straightLeft();
+	}
+}
+
+void shot_3_4_3_3() {
+	if(!stanceIsSouthpaw) {
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+		delay(shotDuration);
+		hookLeft();
+	} else {
+		hookRight();
+		delay(shotDuration);
+		hookLeft();
+		delay(shotDuration);
+		hookRight();
+		delay(shotDuration);
+		hookRight();
+	}
+}
+
+void shot_1_2_1_1() {
+	if(!stanceIsSouthpaw) {
+		straightLeft();
+		straightRight();
+		straightLeft();
+		delay(shotDuration);
+		straightLeft();
+	} else {
+		straightRight();
+		straightLeft();
+		straightRight();
+		delay(shotDuration);
+		straightRight();
+	}
+}
 
 //decides the action based on probability
 int getRandomActionFromProbability(int probs[], int probSize) {
@@ -970,6 +1082,84 @@ bool watchDelay(long waitTime) {
   return false; // exit for timeout
 }
 
+//get action (random probability) level based
+int getActionFromState() {
+	int action = NO_ACTION;
+	switch(level) {
+		case START: {    
+			startPosition();
+			delay(2000);
+			straightRight();
+			delay(2000);
+			level = STOP;
+			action = NO_ACTION;
+			break;
+		}
+		case STOP: {
+			action = NO_ACTION;
+			break;
+		}
+		case SINGLE_SHOT: {
+			action = SINGLE_ACTION;
+			break;
+		}
+    case DOUBLE_SHOT: {
+			int num = 2;
+			int shotNumberProbs[num] = {40, 60};
+			switch(getRandomActionFromProbability(shotNumberProbs, num)) {
+  			case 0: action = SINGLE_ACTION; break;
+  			case 1: action = DOUBLE_ACTION; break;
+  		}
+			break;
+		}
+		case TRIPLE_SHOT: {
+			int num = 3;
+			int shotNumberProbs[num] = {30, 30, 40};
+			switch(getRandomActionFromProbability(shotNumberProbs, num)) {
+  			case 0: action = SINGLE_ACTION; break;
+  			case 1: action = DOUBLE_ACTION; break;
+				case 2: action = TRIPLE_ACTION; break;
+  		}
+			break;
+		}
+		case QUADRUPLE_SHOT: {
+			int num = 4;
+			int shotNumberProbs[num] = {10, 20, 35, 35};
+			switch(getRandomActionFromProbability(shotNumberProbs, num)) {
+  			case 0: action = SINGLE_ACTION;    break;
+  			case 1: action = DOUBLE_ACTION;    break;
+				case 2: action = TRIPLE_ACTION;    break;
+				case 3: action = QUADRUPLE_ACTION; break;
+  		}
+			break;
+		}
+		case STRAIGHT_ONLY: {
+			action = STRAIGHT_ACTION;
+			break;
+		}
+		case HOOK_ONLY: {
+			action = HOOK_ACTION;
+			break;
+		}
+		case FIX_COMBO_1_2: {
+			action = COMBO_1_2_ACTION;
+			break;
+		}
+		case FIX_COMBO_2_3: {
+			action = COMBO_2_3_ACTION;
+			break;
+		}
+		case FIX_COMBO_1_2_3: {
+			action = COMBO_1_2_3_ACTION;
+			break;
+		}
+		case FIX_COMBO_3_4: {
+			action = COMBO_3_4_ACTION;
+			break;
+		}
+	}
+	return action;
+}
 
 //set or change stance based on probability
 void checkStance() {
@@ -995,118 +1185,104 @@ void checkStance() {
 
 
 //execute the action (random probability based)
-void executeAction()  {
-  switch(level) {
-		case START: {    
-			startPosition();
-			delay(1000);
-			straightRight();
-			delay(1000);
-			straightLeft();
-			delay(1000);
-			level = STOP;
-			break;
-		}
-		case STOP: {
-			break;
-		}
-		case SINGLE_SHOT: {
-			int num = 8;
-  		int probs[num] = {14, 14, 13, 13, 13, 13, 10, 10};
-  		switch(getRandomActionFromProbability(probs, num)) {
-  			case 0: eseguiColpo("1");  break;
-  			case 1: eseguiColpo("2");  break;
-				case 2: eseguiColpo("3");  break;
-  			case 3: eseguiColpo("4");  break;
-				case 5: eseguiColpo("5");  break;
-  			case 6: eseguiColpo("6");  break;
-				case 7: eseguiColpo("5b"); break;
-  			case 8: eseguiColpo("6b"); break;
+void executeAction(int action)  {
+  switch(action) {
+	  case NO_ACTION: { //no action
+      startPosition();
+      break;
+	  }
+	  case SINGLE_ACTION: { //random single shot
+			int num = 4;
+  		int singleShotProbs[num] = {25, 25, 25, 25};
+  		switch(getRandomActionFromProbability(singleShotProbs, num)) {
+  			case 0: shot_1(); break;
+  			case 1: shot_2(); break;
+				case 2: shot_3(); break;
+  			case 3: shot_4(); break;
+  		}
+      break;
+	  }
+	  case DOUBLE_ACTION: { //random double shot
+			int num = 7;
+  		int doubleShotProbs[num] = {15, 14, 14, 14, 15, 14, 14};
+  		switch(getRandomActionFromProbability(doubleShotProbs, num)) {
+  			case 0: shot_1_2();  break;
+  			case 1: shot_3_3();  break;
+  			case 2: shot_1_1();  break;
+  			case 3: shot_3_2();  break;
+  			case 4: shot_1_3();  break;
+  			case 5: shot_2_3();  break;
+  			case 6: shot_3_4();  break;
+  		}
+  		break;
+	  }
+	  case TRIPLE_ACTION: { //random triple shot
+			int num = 10;
+		  int tripleShotProbs[num] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+  		switch(getRandomActionFromProbability(tripleShotProbs, num)) {
+  			case 0: shot_1_2_3();  break;
+  			case 1: shot_3_1_3();  break;
+  			case 2: shot_1_3_1();  break;
+  			case 3: shot_3_4_2();  break;
+  			case 4: shot_1_1_2();  break;
+  			case 5: shot_1_2_1();  break;
+  			case 6: shot_3_4_3();  break;
+  			case 7: shot_1_2_2();  break;
+  			case 8: shot_1_4_3();  break;
+  			case 9: shot_2_3_2();  break;
+  		}
+  		break;
+	  }
+	  case QUADRUPLE_ACTION: { //random quadruple shot
+			int num = 7;
+  		int quadrupleShotProbs[num] = {15, 14, 14, 14, 15, 14, 14};
+  		switch(getRandomActionFromProbability(quadrupleShotProbs, num)) {
+  			case 0: shot_1_2_3_4();  break;
+  			case 1: shot_3_4_3_3();  break;
+  			case 2: shot_1_2_3_2();  break;
+  			case 3: shot_3_4_2_1();  break;
+  			case 4: shot_1_2_1_2();  break;
+  			case 5: shot_3_4_3_2();  break;
+  			case 6: shot_1_2_1_1();  break;
+  		}
+  		break;
+	  }
+		case STRAIGHT_ACTION: { //random straight shot
+			int num = 4;
+			int straightOnlyProbs[num] = {45, 45, 5, 5};
+  		switch(getRandomActionFromProbability(straightOnlyProbs, num)) {
+  			case 0: shot_1();    break;
+				case 1: shot_2();    break;
+  			case 2: shot_1_1();  break;
+				case 3: shot_2_2();  break;
   		}
 			break;
 		}
-    case DOUBLE_SHOT: {
-			int indice = random(sizeof(combo2) / sizeof(combo2[0]));
-			const char* combo = combo2[indice];
-  		eseguiCombo(combo);
-			break;
-		}
-		case TRIPLE_SHOT: {
-			int num = 2;
-  		int probs[num] = {60, 40};
-  		switch(getRandomActionFromProbability(probs, num)) {
-  			case 0: {
-					int indice = random(sizeof(combo2) / sizeof(combo2[0]));
-					const char* combo = combo2[indice];
-					eseguiCombo(combo);
-					break;
-				}
-  			case 1: {
-					int indice = random(sizeof(combo3) / sizeof(combo3[0]));
-					const char* combo = combo3[indice];
-					eseguiCombo(combo);
-					break;
-				}
+		case HOOK_ACTION: { //random hook shot
+			int num = 4;
+			int hookOnlyProbs[num] = {45, 45, 5, 5};
+  		switch(getRandomActionFromProbability(hookOnlyProbs, num)) {
+  			case 0: shot_3();    break;
+  			case 1: shot_4();    break;
+				case 2: shot_3_3();  break;
+  			case 3: shot_4_4();  break;
   		}
 			break;
 		}
-		case QUADRUPLE_SHOT: {
-			int num = 3;
-  		int probs[num] = {50, 30, 20};
-  		switch(getRandomActionFromProbability(probs, num)) {
-  			case 0: {
-					int indice = random(sizeof(combo2) / sizeof(combo2[0]));
-					const char* combo = combo2[indice];
-					eseguiCombo(combo);
-					break;
-				}
-  			case 1: {
-					int indice = random(sizeof(combo3) / sizeof(combo3[0]));
-					const char* combo = combo3[indice];
-					eseguiCombo(combo);
-					break;
-				}
-				case 2: {
-					int indice = random(sizeof(combo4) / sizeof(combo4[0]));
-					const char* combo = combo4[indice];
-					eseguiCombo(combo);
-					break;
-				}
-  		}
+		case COMBO_1_2_ACTION: { //fix combo
+			shot_1_2();
 			break;
 		}
-		case STRAIGHT_ONLY: {
-			int num = 2;
-  		int probs[num] = {50, 50};
-  		switch(getRandomActionFromProbability(probs, num)) {
-  			case 0: eseguiColpo("1"); break;
-  			case 1: eseguiColpo("2"); break;
-  		}
+		case COMBO_2_3_ACTION: { //fix combo
+			shot_2_3();
 			break;
 		}
-		case HOOK_ONLY: {
-			int num = 2;
-  		int probs[num] = {50, 50};
-  		switch(getRandomActionFromProbability(probs, num)) {
-  			case 0: eseguiColpo("3"); break;
-  			case 1: eseguiColpo("4"); break;
-  		}
+		case COMBO_1_2_3_ACTION: { //fix combo
+			shot_1_2_3();
 			break;
 		}
-		case FIX_COMBO_1_2: {
-			eseguiCombo("1-2");
-			break;
-		}
-		case FIX_COMBO_2_3: {
-			eseguiCombo("2-3");
-			break;
-		}
-		case FIX_COMBO_1_2_3: {
-			eseguiCombo("1-2-3");
-			break;
-		}
-		case FIX_COMBO_3_4: {
-			eseguiCombo("3-4");
+		case COMBO_3_4_ACTION: { //fix combo
+			shot_3_4();
 			break;
 		}
 	  default: {
@@ -1305,11 +1481,14 @@ void loop() {
 	server.handleClient();
 	ElegantOTA.loop();
 
+	//get random action
+	int action = getActionFromState();
+	
 	//check stance
 	checkStance();
 	
 	//execute action (starts the punch running servo motors)
-	executeAction();
+	executeAction(action);
 	
 	//wait before striking the next blow shot
 	watchDelay(getRandomWaitTime());
