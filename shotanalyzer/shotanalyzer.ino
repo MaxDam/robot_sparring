@@ -60,6 +60,11 @@ unsigned int hitCount = 0;
    ========================= */
 #define IMPACT_THRESHOLD 1.5   // soglia colpo (g sopra gravità)
 #define HIT_TIMEOUT      50    // ms fine colpo
+#define PUNCH_MASS       3.5   // massa del pugno
+
+float impactKg(float gValue) {
+  return gValue * PUNCH_MASS; // kgf
+}
 
 /* =========================
    SETUP
@@ -136,7 +141,7 @@ void loop() {
     hitCount++;
   }
 
-  // DEBUG seriale
+ // DEBUG seriale
   Serial.print("Attuale: ");
   Serial.print(impactG, 2);
   Serial.print(" g | Ultimo max: ");
@@ -156,29 +161,38 @@ void loop() {
   display.setCursor(0, 0);
   display.print("SHOT ANALYZER");
 
-  // Conteggio colpi
+
+  // Valore massimo
+  display.setTextSize(1);
   display.setCursor(90, 0);
-  display.print("H:");
-  display.print(hitCount);
+  display.print("R:");
+  display.print(impactKg(recordPeakG), 1);
 
   // Ultimo colpo massimo in grande
   display.setTextSize(3);
-  display.setCursor(0, 20);
-  display.print(lastPeakG, 1);
-  display.print("g");
+  display.setCursor(0, 18);
+  display.print(impactKg(lastPeakG), 1);
+  //display.print("g");
+  display.print("kg");
 
   // Record massimo piccolo in alto a destra
-  display.setTextSize(1);
-  display.setCursor(90, 16);
-  display.print("R:");
-  display.print(recordPeakG, 1);
+  //display.setTextSize(1);
+  //display.setCursor(90, 16);
+  //display.print("R:");
+  //display.print(impactKg(recordPeakG), 1);
 
   // Valore attuale piccolo
-  display.setTextSize(1);
-  display.setCursor(0, 55);
-  display.print("Now:");
-  display.print(impactG, 2);
-  display.print("g");
+  //display.setTextSize(1);
+  //display.setCursor(0, 55);
+  //display.print("Now:");
+  //display.print(impactG, 2);
+  //display.print("g");
+
+  // Conteggio colpi
+  display.setTextSize(2);
+  display.setCursor(0, 50);
+  display.print("H:");
+  display.print(hitCount);
 
   display.display();
 
