@@ -44,17 +44,27 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 MPU6050 mpu;
 
 /* =========================
-   VARIABILI
+   VARIABILI GLOBALI
    ========================= */
-float currentG   = 0.0;   // accelerazione istantanea
-float impactG    = 0.0;   // accelerazione senza gravità
-float peakG      = 0.0;   // picco del colpo in corso
-float lastPeakG  = 0.0;   // ultimo colpo registrato
+float currentG   = 0.0;   // accelerazione totale
+float impactG    = 0.0;   // accelerazione dinamica
+float peakG      = 0.0;   // picco colpo corrente
+float lastPeakG  = 0.0;   // ultimo colpo valido
+float recordPeakG = 0.0;  // record massimo assoluto
 
 unsigned long lastHitTime = 0;
+unsigned int hitCount = 0;
 
-#define IMPACT_THRESHOLD 1.5   // g sopra la gravità (soglia colpo)
+/* =========================
+   PARAMETRI
+   ========================= */
+#define IMPACT_THRESHOLD 1.5   // soglia colpo (g sopra gravità)
 #define HIT_TIMEOUT      50    // ms fine colpo
+#define PUNCH_MASS       3.5   // massa del pugno
+
+float impactKg(float gValue) {
+  return gValue * PUNCH_MASS; // kgf
+}
 
 /* =========================
    SETUP
@@ -63,9 +73,8 @@ void setup() {
   Serial.begin(115200);
   Wire.begin(); // ESP8266: SDA=D2, SCL=D1
 
-  // --- OLED INIT ---
+  // OLED
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
-    Serial.println("Errore OLED");
     while (1);
   }
 
@@ -76,87 +85,116 @@ void setup() {
   display.println("Inizializzazione...");
   display.display();
 
-  // --- MPU6050 INIT ---
+  // MPU6050
   mpu.initialize();
   if (!mpu.testConnection()) {
     display.clearDisplay();
-    display.setCursor(0, 0);
     display.println("MPU6050 ERRORE");
     display.display();
     while (1);
   }
-
-  // Imposta range accelerometro ±16g
   mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_16);
 
   display.clearDisplay();
-  display.setCursor(0, 0);
   display.println("Sistema pronto");
   display.display();
-
   delay(1000);
 }
 
 /* =========================
-   LOOP
+   LOOP PRINCIPALE
    ========================= */
 void loop() {
   int16_t axRaw, ayRaw, azRaw;
   float ax, ay, az;
 
-  // Lettura accelerazione grezza
+  // Lettura accelerometro
   mpu.getAcceleration(&axRaw, &ayRaw, &azRaw);
 
-  // Conversione in g (±16g → 2048 LSB/g)
+  // Conversione in g
   ax = axRaw / 2048.0;
   ay = ayRaw / 2048.0;
   az = azRaw / 2048.0;
 
-  // Modulo vettoriale accelerazione totale
+  // Accelerazione totale
   currentG = sqrt(ax * ax + ay * ay + az * az);
 
-  // Accelerazione dinamica (rimozione gravità)
+  // Rimozione gravità
   impactG = fabs(currentG - 1.0);
 
   // Rilevamento colpo
   if (impactG > IMPACT_THRESHOLD) {
-    if (impactG > peakG) {
-      peakG = impactG;
-    }
+    if (impactG > peakG) peakG = impactG;
     lastHitTime = millis();
   }
 
-  // Fine colpo → salva massimo
+  // Fine colpo → salva massimo e conta colpi
   if (peakG > 0 && (millis() - lastHitTime) > HIT_TIMEOUT) {
     lastPeakG = peakG;
+
+    // Aggiorna record assoluto
+    if (lastPeakG > recordPeakG) {
+      recordPeakG = lastPeakG;
+    }
+
     peakG = 0;
+    hitCount++;
   }
 
-  // DEBUG seriale
+ // DEBUG seriale
   Serial.print("Attuale: ");
   Serial.print(impactG, 2);
   Serial.print(" g | Ultimo max: ");
   Serial.print(lastPeakG, 2);
-  Serial.println(" g");
+  Serial.print(" g | Record: ");
+  Serial.print(recordPeakG, 2);
+  Serial.print(" g | Colpi: ");
+  Serial.println(hitCount);
 
-  // OLED
+  /* =========================
+     OLED DISPLAY
+     ========================= */
   display.clearDisplay();
+
+  // Titolo
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println("Colpo al sacco");
+  display.print("SHOT ANALYZER");
 
-  display.setCursor(0, 16);
-  display.print("Attuale: ");
-  display.print(impactG, 2);
-  display.println(" g");
 
-  display.setCursor(0, 32);
-  display.print("Ultimo max:");
-  display.print(lastPeakG, 2);
-  display.println(" g");
+  // Valore massimo
+  display.setTextSize(1);
+  display.setCursor(90, 0);
+  display.print("R:");
+  display.print(impactKg(recordPeakG), 1);
+
+  // Ultimo colpo massimo in grande
+  display.setTextSize(3);
+  display.setCursor(0, 18);
+  display.print(impactKg(lastPeakG), 1);
+  //display.print("g");
+  display.print("kg");
+
+  // Record massimo piccolo in alto a destra
+  //display.setTextSize(1);
+  //display.setCursor(90, 16);
+  //display.print("R:");
+  //display.print(impactKg(recordPeakG), 1);
+
+  // Valore attuale piccolo
+  //display.setTextSize(1);
+  //display.setCursor(0, 55);
+  //display.print("Now:");
+  //display.print(impactG, 2);
+  //display.print("g");
+
+  // Conteggio colpi
+  display.setTextSize(2);
+  display.setCursor(0, 50);
+  display.print("H:");
+  display.print(hitCount);
 
   display.display();
 
-  delay(30); // ~33 Hz
+  delay(30); // refresh ~33 Hz
 }
-
