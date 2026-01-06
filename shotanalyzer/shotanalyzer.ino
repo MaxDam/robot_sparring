@@ -52,10 +52,8 @@ float peakG        = 0.0;
 float lastPeakG    = 0.0;
 float recordPeakG  = 0.0;
 
-float sumImpactG   = 0.0;   // somma accelerazioni colpo
-unsigned int impactSamples = 0;
-
-float lastAvgG     = 0.0;   // accelerazione media ultimo colpo
+float sumPeakG     = 0.0;   // somma picchi colpi
+float avgPeakG     = 0.0;   // media colpi
 
 unsigned long lastHitTime = 0;
 unsigned int hitCount = 0;
@@ -63,15 +61,15 @@ unsigned int hitCount = 0;
 /* =========================
    PARAMETRI
    ========================= */
-#define IMPACT_THRESHOLD 1.5   // soglia colpo
-#define HIT_TIMEOUT      50    // ms fine colpo
-#define PUNCH_MASS       3.5   // massa efficace pugno (kg)
+#define IMPACT_THRESHOLD 1.5
+#define HIT_TIMEOUT      50
+#define PUNCH_MASS       3.5   // kg
 
 /* =========================
    FUNZIONI
    ========================= */
 float impactKg(float gValue) {
-  return gValue * PUNCH_MASS; // kg equivalenti
+  return gValue * PUNCH_MASS;
 }
 
 /* =========================
@@ -128,10 +126,6 @@ void loop() {
   /* ---- RILEVAMENTO COLPO ---- */
   if (impactG > IMPACT_THRESHOLD) {
     if (impactG > peakG) peakG = impactG;
-
-    sumImpactG += impactG;
-    impactSamples++;
-
     lastHitTime = millis();
   }
 
@@ -143,16 +137,11 @@ void loop() {
       recordPeakG = lastPeakG;
     }
 
-    if (impactSamples > 0) {
-      lastAvgG = sumImpactG / impactSamples;
-    } else {
-      lastAvgG = 0;
-    }
+    sumPeakG += lastPeakG;
+    hitCount++;
+    avgPeakG = sumPeakG / hitCount;
 
     peakG = 0;
-    sumImpactG = 0;
-    impactSamples = 0;
-    hitCount++;
   }
 
   /* =========================
@@ -160,29 +149,27 @@ void loop() {
      ========================= */
   display.clearDisplay();
 
-  // Titolo
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("SHOT ANALYZER");
 
-  // Colpi
   display.setCursor(90, 0);
   display.print("H:");
   display.print(hitCount);
 
-  // Ultimo colpo (MAX)
+  // Ultimo colpo
   display.setTextSize(3);
   display.setCursor(0, 18);
   display.print(impactKg(lastPeakG), 1);
   display.print("kg");
 
-  // Media colpo
+  // Media colpi
   display.setTextSize(1);
   display.setCursor(0, 50);
   display.print("AVG:");
-  display.print(impactKg(lastAvgG), 1);
+  display.print(impactKg(avgPeakG), 1);
 
-  // Max Colpo
+  // Record
   display.setCursor(80, 50);
   display.print("MAX:");
   display.print(impactKg(recordPeakG), 1);
