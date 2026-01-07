@@ -78,6 +78,8 @@ float impactKg(float gValue) {
 void setup() {
   Serial.begin(115200);
   Wire.begin();
+  Wire.setClock(100000);
+  Wire.setTimeout(50); 
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
     while (1);
@@ -111,25 +113,50 @@ void setup() {
    LOOP
    ========================= */
 void loop() {
+  static unsigned long lastDisplayUpdate = 0;
+  const unsigned long DISPLAY_INTERVAL = 30;
+
   int16_t axRaw, ayRaw, azRaw;
   float ax, ay, az;
 
+  /* =========================
+     LETTURA MPU (PROTETTA)
+     ========================= */
+  if (!mpu.testConnection()) {
+    // se l'MPU non risponde, salta questo ciclo
+    return;
+  }
+
   mpu.getAcceleration(&axRaw, &ayRaw, &azRaw);
+
+  // Protezione da letture invalide
+  if (axRaw == 0 && ayRaw == 0 && azRaw == 0) {
+    return;
+  }
 
   ax = axRaw / 2048.0;
   ay = ayRaw / 2048.0;
   az = azRaw / 2048.0;
 
   currentG = sqrt(ax * ax + ay * ay + az * az);
-  impactG  = fabs(currentG - 1.0);
 
-  /* ---- RILEVAMENTO COLPO ---- */
+  if (isnan(currentG) || currentG > 20.0) {
+    return; // scarta valori assurdi
+  }
+
+  impactG = fabs(currentG - 1.0);
+
+  /* =========================
+     RILEVAMENTO COLPO
+     ========================= */
   if (impactG > IMPACT_THRESHOLD) {
     if (impactG > peakG) peakG = impactG;
     lastHitTime = millis();
   }
 
-  /* ---- FINE COLPO ---- */
+  /* =========================
+     FINE COLPO
+     ========================= */
   if (peakG > 0 && (millis() - lastHitTime) > HIT_TIMEOUT) {
     lastPeakG = peakG;
 
@@ -145,8 +172,11 @@ void loop() {
   }
 
   /* =========================
-     OLED
+     OLED (REFRESH CONTROLLATO)
      ========================= */
+  if (millis() - lastDisplayUpdate < DISPLAY_INTERVAL) return;
+  lastDisplayUpdate = millis();
+
   display.clearDisplay();
 
   display.setTextSize(1);
@@ -175,5 +205,4 @@ void loop() {
   display.print(impactKg(recordPeakG), 1);
 
   display.display();
-  delay(30);
 }
