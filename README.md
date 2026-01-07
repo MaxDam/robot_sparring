@@ -10,5 +10,11 @@ https://www.hackster.io/maxdam75/robot-sparring-79726e
 <img src="./schema/crab_sparring_robot.jpg" width=400>
 </p>
 
-### Schema
+### Schema Crab Sparring
 <img src="./schema/schema4.jpg" width=800>
+
+### Schema Robot Sparring Arm
+<img src="./schema/schema_robor_sparring_arm_5.jpg" width=800>
+
+### Shot Analyzer
+<img src="./schema/shotanalyzer.jpg" width=400>
