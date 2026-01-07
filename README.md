@@ -16,5 +16,5 @@ https://www.hackster.io/maxdam75/robot-sparring-79726e
 ### Schema Robot Sparring Arm
 <img src="./schema/schema_robor_sparring_arm_5.jpg" width=800>
 
-### Shot Analyzer
+### Shema Shot Analyzer
 <img src="./schema/shotanalyzer.jpg" width=400>
